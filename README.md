@@ -1,6 +1,6 @@
 # Market Making Strategy Backtesting Framework
 
-A Python-based framework for backtesting sophisticated market making strategies across multiple cryptocurrency pairs. This tool implements limit order-based market making simulations with configurable risk management and trading strategies, inspired by Stoikov's "Avellaneda-Stoikov" model (Stoikov, 2018).
+A Python-based framework for backtesting sophisticated market making strategies across multiple cryptocurrency pairs. This tool implements limit order-based market making simulations with configurable risk management and trading strategies, inspired by Stoikov's "Avellaneda-Stoikov" model (Stoikov, 2006).
 
 ## Project Scope
 
@@ -126,7 +126,7 @@ results = simulation.run_simulation(
 - Minimum order value requirements
 
 ### Trading Strategy
-- Generic Mexico class with parameter-based calculations:
+- Generic "Mexico" class with parameter-based calculations:
   - Dynamic spread calculation based on historical volatility
   - Reservation price computation using multiple indicators
   - Order size optimization based on market conditions
@@ -203,8 +203,7 @@ results = simulation.run_simulation(
 
 ## References
 
-- Stoikov, S. (2018). The micro-price: A high-frequency estimator of future prices. Quantitative Finance, 18(12), 1959-1966.
-- Avellaneda, M., & Stoikov, S. (2008). High-frequency trading in a limit order book. Quantitative Finance, 8(3), 217-224.
+- Avellaneda, M., & Stoikov, S. (2006). High-frequency trading in a limit order book.
 
 ## Performance Metrics
 
@@ -215,13 +214,7 @@ The simulation tracks and calculates:
    - Leverage (per symbol and total)
    - Realized and unrealized PnL
 
-2. Trading Metrics:
-   - Number of trades
-   - Maker vs taker fees
-   - Fee/volume ratio
-   - Win rate
-
-3. Risk Metrics:
+2. Risk Metrics:
    - Maximum drawdown
    - Sharpe ratio
    - Sortino ratio
@@ -237,6 +230,10 @@ The results include visualizations of:
 - Reservation prices
 - Realized PnL
 
+## TODOS
+1. Work on trading Strategies; make simple examples with city names 
+2. Actually implement Stoikov , not done yet
+3. This readme is AI generated and not entirely correct ; will be updated later
 ## Contributing
 
 1. Fork the repository
@@ -246,8 +243,8 @@ The results include visualizations of:
 
 ## License
 
-[Add your license here]
+MIT Licence
 
 ## Contact
 
-[Add your contact information here]
+timcaron373@gmail.com
