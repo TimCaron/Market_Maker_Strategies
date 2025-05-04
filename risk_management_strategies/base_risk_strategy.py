@@ -3,15 +3,16 @@ from typing import Dict, List, Optional, Tuple
 from orders import LimitOrder, MarketOrder, OrderSide
 from logger import MarketMakingLogger
 
+
 @dataclass
-class RiskParameters:
-    # This will appply on a per symbol basis; divided these values by n_symbols
-    max_leverage: float = 1.0  # Maximum allowed total leverage accross all symbols(when opening new positions)
+class RiskStrategyParameters:
+    max_leverage: float = 1.0
+    min_order_value_usd: float = 10.0  # Minimum order value in USD ; prevents small orders and numerical errors: float = 10.0
     aggressivity: float = 0.1
-    emergency_exit_leverage: float = 2.0  # Total leverage level that triggers emergency exit
-    # == market sell all and resume simulation
-    early_stopping_margin: float = 0.1  # parameter for faster parameter search, if margin is less than 10% of initial margin, stop the simulation
-    min_order_value_usd: float = 10.0  # Minimum order value in USD ; prevents small orders and numerical errors
+    emergency_exit_leverage: float = 2.0
+    early_stopping_margin: float = 0.1
+    cancel_orders_every_timestamp: bool = True  # Default to canceling orders every timestamp
+    max_order_age: Optional[int] = None  # Maximum age of orders in timestamps before cancellation
 
 @dataclass
 class RiskMetrics: # is on a per symbol basis
@@ -22,7 +23,7 @@ class RiskMetrics: # is on a per symbol basis
 class BaseRiskStrategy:
     """Base class for risk management strategies"""
     
-    def __init__(self, parameters: RiskParameters):
+    def __init__(self, parameters: RiskStrategyParameters = RiskStrategyParameters()):
         self.parameters = parameters
         self.logger = MarketMakingLogger(verbosity=2)  # Default to DEBUG level
     
@@ -94,4 +95,12 @@ class BaseRiskStrategy:
         Returns:
             bool: True if simulation should continue, False if it should stop
         """
-        raise NotImplementedError("Subclasses must implement continue_simulation") 
+        raise NotImplementedError("Subclasses must implement continue_simulation")
+
+    def should_cancel_orders(self, timestamp: int, order_timestamp: int) -> bool:
+        """Check if orders should be canceled based on strategy parameters"""
+        if self.parameters.cancel_orders_every_timestamp:
+            return True
+        if self.parameters.max_order_age is not None:
+            return timestamp - order_timestamp >= self.parameters.max_order_age
+        return False 

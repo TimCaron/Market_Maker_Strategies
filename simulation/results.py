@@ -94,23 +94,8 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict) -> None
         'realized_pnl_history': results['realized_pnl_history'],
         'params': strategies
     }
-    # For dictionary arguments, print info about their contents
-    for arg_name, arg_value in viz_args.items():
-        if isinstance(arg_value, dict):
-            print(f"\nDetailed info for dictionary {arg_name}:")
-            for key, value in arg_value.items():
-                print(f"  Key: {key}")
-                print(f"  Type: {type(value)}")
-                if hasattr(value, '__len__'):
-                    print(f"  Length: {len(value)}")
-                print("  " + "-" * 48)
-        else:
-            print(f"Argument: {arg_name}")
-            print(f"Type: {type(arg_value)}")
-            if hasattr(arg_value, '__len__'):
-                print(f"Length: {len(arg_value)}")
-            print("-" * 50)
-
+   
+   
     # Generate visualization
     plot_strategy_metrics(
         prices=symbol_prices,

@@ -244,6 +244,16 @@ class MarketMakerSimulation:
             close = closes[symbol][t]
             position.update_unrealized_pnl(close)
             total_upnl += position.unrealized_pnl
+            # Log position summary for each symbol
+            self.logger.log_position_state(
+                t, symbol, 
+                position.current_quantity,
+                position.previous_entry_price or 0.0,
+                position.unrealized_pnl,
+                position.total_realized_pnl,
+                self.current_risk_metrics[symbol].current_leverage,
+                position.total_fee_paid
+            )
 
         # Get wallet balance from order manager
         self.wallet_balance = self.order_manager.wallet_balance
@@ -283,21 +293,13 @@ class MarketMakerSimulation:
         low = lows[symbol][t]
         close = closes[symbol][t]
         current_indicators = indicators[symbol][t]
-        self._log_market_data(t, symbol, open_price, high, low, close, current_indicators)
 
         # Get current position state and log it
         risk_metric = self.current_risk_metrics[symbol]
         position = self.positions.get(symbol)  
         current_quantity = position.current_quantity
         upnl = position.update_unrealized_pnl(open_price)
-        # Log position state
-        self.logger.log_position_state(
-            t, symbol, current_quantity, 
-            position.previous_entry_price or 0.0,
-            upnl,
-            position.total_realized_pnl,
-            risk_metric.current_leverage
-        )
+
      
         return self._get_new_order_list(t, symbol, strategy, open_price,
             current_indicators, current_quantity, upnl, local_past_ohlc
@@ -370,6 +372,17 @@ class MarketMakerSimulation:
             self.per_symbol_margin = self.margin/self.n_symbols
             opening_prices = {symbol: prices[symbol][t] for symbol in self.symbols}
             self.current_risk_metrics = self._calculate_risk_metrics(opening_prices)
+            
+            # Log market data for each symbol at the beginning of timestamp
+            for symbol in self.symbols:
+                self._log_market_data(
+                    t, symbol,
+                    prices[symbol][t],
+                    highs[symbol][t],
+                    lows[symbol][t],
+                    closes[symbol][t],
+                    indicators[symbol][t]
+                )
         
             # if required, end simulation
             if not self._check_margin_conditions(t):
@@ -395,6 +408,9 @@ class MarketMakerSimulation:
             # Check for emergency exits
             emergency_exits = self.risk_strategy.check_emergency_exit(self.current_risk_metrics, self.n_symbols)
             self._process_emergency_exits(t, emergency_exits, opening_prices)
+            
+            # Cancel old orders based on risk strategy parameters
+            self.order_manager.cancel_old_orders(t, self.risk_strategy)
             
             # And process each symbol : call strategy to get new orders for each symbol
             all_new_orders = []

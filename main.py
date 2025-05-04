@@ -6,7 +6,7 @@ from trading_strategies.Mexico_strategy import MexicoStrategy
 from trading_strategies.base_strategy import BaseStrategy
 from constants import DEFAULT_PARAMS, Symbol
 from trading_strategies.strategy_factory import StrategyFactory
-from risk_management_strategies.base_risk_strategy import RiskParameters, BaseRiskStrategy
+from risk_management_strategies.base_risk_strategy import RiskStrategyParameters, BaseRiskStrategy
 from risk_management_strategies.basic_risk_strategy import BasicRiskStrategy
 from simulation.executor import execute_simulation
 from simulation.results import process_results
@@ -107,18 +107,19 @@ if __name__ == '__main__':
 
     # Strategy parameters
     btc_params = {
-        'q_factor': 0,  
-        'upnl_factor': 0,
-        'mean_revert_factor': 0, 
-        'momentum_factor': 0, 
+        'q_factor': 0.0,  
+        'upnl_factor': 0.0,
+        'mean_revert_factor': 0.0, 
+        'momentum_factor': 0.0, 
         'constant_spread': 0.005,
-        'vol_factor': 0,
-        'spread_mom_factor': 0,
-        'max_orders': 1,
+        'vol_factor': 0.0,
+        'spread_mom_factor': 0.0,
+        'max_orders': 2,
         'window_vol': 7,
         'window_sma': 7,
         'window_mom': 7,
-        'window_high_low': 3
+        'window_high_low': 3,
+        'use_adaptive_sizes': True
     }
     
     eth_params = {
@@ -129,11 +130,12 @@ if __name__ == '__main__':
         'constant_spread': 0.003,
         'vol_factor': 0,
         'spread_mom_factor': 0,
-        'max_orders': 2,
+        'max_orders': 10,
         'window_vol': 3,
         'window_sma': 3,
         'window_mom': 3,
-        'window_high_low': 3
+        'window_high_low': 3,
+        'use_adaptive_sizes': True
     }
     
     # Configure symbols and strategies
@@ -149,14 +151,16 @@ if __name__ == '__main__':
         }
 
     # Initialize risk management strategy
-    risk_params = RiskParameters(
-        aggressivity = DEFAULT_PARAMS['aggressivity'],
+    risk_params = RiskStrategyParameters(
         max_leverage=DEFAULT_PARAMS['max_leverage'],
+        min_order_value_usd=DEFAULT_PARAMS['min_order_value_usd'],
+        aggressivity=DEFAULT_PARAMS['aggressivity'],
         emergency_exit_leverage=DEFAULT_PARAMS['emergency_exit_leverage'],
         early_stopping_margin=DEFAULT_PARAMS['early_stopping_margin'],
-        min_order_value_usd=DEFAULT_PARAMS['min_order_value_usd']
+        cancel_orders_every_timestamp=True,  # Cancel orders at each new timestamp
+        max_order_age=None  # No maximum age limit
     )
     risk_strategy = BasicRiskStrategy(risk_params)
 
     # Run simulation
-    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=2)
+    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=0)

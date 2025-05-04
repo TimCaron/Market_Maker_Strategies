@@ -20,6 +20,7 @@ class MexicoParameters(StrategyParameters):
     
     #other parameters
     max_orders: int
+    use_adaptive_sizes: bool  # Whether to use adaptive order sizes based on remaining inventory
 
     # window parameters for indicators
     window_vol : int
@@ -103,9 +104,17 @@ class MexicoStrategy(BaseStrategy):
             if sell_price > current_price + minimal_spread:
                 count_sell+=1
 
-        #then divide size equally and generate orders
-        buy_size = remaining_inventory_buy/count_buy
-        sell_size = remaining_inventory_buy/count_sell
+        # Calculate order sizes based on strategy parameter
+        if self.params.use_adaptive_sizes:
+            # Adaptive sizes based on remaining inventory
+            buy_size = remaining_inventory_buy/count_buy if count_buy > 0 else 0
+            sell_size = remaining_inventory_sell/count_sell if count_sell > 0 else 0
+        else:
+            # Fixed sizes based on max inventory
+            buy_size = max_inventory/max_orders
+            sell_size = max_inventory/max_orders
+
+        # Generate orders
         for i in range(1, max_orders+1):
             level_spread = i*spacing*current_price
             buy_price = round((reservation_price - level_spread) / ticksize) * ticksize

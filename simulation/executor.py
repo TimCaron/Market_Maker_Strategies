@@ -77,7 +77,7 @@ def execute_simulation(
 
     # Initialize simulation
     min_start = get_starting_timestamp(strategy_dict)
-    print('min_start', min_start)
+    print('min_start', min_start)   
     simulation = MarketMakerSimulation(
         strategies=strategy_dict,
         initial_cash=DEFAULT_PARAMS['initial_cash'],
@@ -97,13 +97,5 @@ def execute_simulation(
         closes=closes,
         indicators=indicators,
     )
-    # Print information about results dictionary
-    print("\nSimulation Results Summary:")
-    print("-" * 50)
-    for key, value in results.items():
-        print(f"Key: {key}")
-        print(f"Type: {type(value)}")
-        if hasattr(value, '__len__'):
-            print(f"Length: {len(value)}")
-        print("-" * 50)
+
     return results 

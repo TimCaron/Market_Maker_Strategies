@@ -4,6 +4,7 @@ from logger import MarketMakingLogger
 from trading_strategies.base_strategy import OrderLevel, StrategyOutput
 from risk_management_strategies.base_risk_strategy import RiskMetrics
 from position import Position
+import random
 
 class OrderManager:
     """Manages order creation, validation, and execution"""
@@ -33,6 +34,58 @@ class OrderManager:
         """Set the initial wallet balance"""
         self.wallet_balance = balance
 
+    def cancel_old_orders(self, timestamp: int, risk_strategy) -> None:
+        """Cancel orders based on risk strategy parameters
+        
+        Args:
+            timestamp: Current timestamp
+            risk_strategy: Risk management strategy instance
+        """
+        for symbol in self.active_orders:
+            orders_to_keep = []
+            for order in self.active_orders[symbol]:
+                if not risk_strategy.should_cancel_orders(timestamp, order.timestamp):
+                    orders_to_keep.append(order)
+                else:
+                    order.status = OrderStatus.CANCELLED
+                    self.logger.log_order_cancellation(timestamp, symbol, order)
+            self.active_orders[symbol] = orders_to_keep
+
+    def get_remaining_capacity(self, timestamp: int, symbol: str, side: OrderSide, max_position: float) -> float:
+        """Get remaining capacity for new orders based on active orders
+        
+        Args:
+            timestamp: Current timestamp
+            symbol: Trading symbol
+            side: Order side (BUY/SELL)
+            max_position: Maximum position size allowed
+            
+        Returns:
+            float: Remaining capacity in asset units
+        """
+        active_orders = self.active_orders.get(symbol, [])
+        long_quantity = sum(
+            order.quantity for order in active_orders 
+            if order.side == OrderSide.BUY and order.status == OrderStatus.PENDING
+        )
+        short_quantity = sum(
+            order.quantity for order in active_orders 
+            if order.side == OrderSide.SELL and order.status == OrderStatus.PENDING
+        )
+        
+        # Calculate remaining capacity
+        current_position = self.positions[symbol].current_quantity
+        remaining_long = max_position - current_position - long_quantity
+        remaining_short = max_position + current_position - short_quantity
+        
+        # Log remaining capacity for new orders
+        self.logger.log_remaining_positions(timestamp, symbol, remaining_long, remaining_short)
+        
+        if side == OrderSide.BUY:
+            return remaining_long
+        else:
+            return remaining_short
+
     def generate_limit_orders(
         self,
         timestamp: int,
@@ -44,27 +97,15 @@ class OrderManager:
         n_symbols: int,
         risk_strategy
     ) -> List[LimitOrder]:
-        """Generate new orders from strategy output
-        
-        Args:
-            timestamp: Current timestamp
-            symbol: Trading symbol
-            strategy_output: Strategy's order recommendations
-            current_position: Current position size
-            max_position: Maximum allowed position size
-            risk_metrics: Current risk metrics
-            n_symbols: Number of symbols being traded
-            risk_strategy: Risk management strategy instance
-            
-        Returns:
-            List of generated orders
-        """
-        # Generate initial orders
+        """Generate new orders from strategy output"""
         potential_orders = []
         
-        # Calculate remaining position capacity for each side
-        remaining_long_capacity = max_position - current_position
-        remaining_short_capacity = max_position + current_position
+        # Calculate remaining capacity considering active orders
+        remaining_long_capacity = self.get_remaining_capacity(timestamp, symbol, OrderSide.BUY, max_position)
+        remaining_short_capacity = self.get_remaining_capacity(timestamp, symbol, OrderSide.SELL, max_position)
+        
+        # Log remaining capacity
+        self.logger.log_remaining_positions(timestamp, symbol, remaining_long_capacity, remaining_short_capacity)
         
         # Generate buy orders
         for level in strategy_output.buy_levels:
@@ -78,7 +119,7 @@ class OrderManager:
                 )
                 potential_orders.append(order)
                 remaining_long_capacity -= level.size
-            
+                
         # Generate sell orders
         for level in strategy_output.sell_levels:
             if remaining_short_capacity > 0:
@@ -165,20 +206,43 @@ class OrderManager:
             List of filled orders
         """
         filled_orders = []
+        active_orders = self.active_orders.get(symbol, [])
         
-        for order in self.active_orders.get(symbol, []):
-            if order.status == OrderStatus.PENDING:
-                if order.side == OrderSide.BUY and low <= order.price - ticksize:
+        # Separate long and short orders
+        long_orders = [order for order in active_orders 
+                      if order.side == OrderSide.BUY and order.status == OrderStatus.PENDING]
+        short_orders = [order for order in active_orders 
+                       if order.side == OrderSide.SELL and order.status == OrderStatus.PENDING]
+        
+        # Randomly decide whether to execute longs or shorts first
+        execute_longs_first = random.random() < 0.5
+        
+        if execute_longs_first:
+            # Execute long orders first
+            for order in long_orders:
+                if low <= order.price - ticksize:
                     order.status = OrderStatus.FILLED
                     filled_orders.append(order)
-                elif order.side == OrderSide.SELL and high >= order.price + ticksize:
+            # Then execute short orders
+            for order in short_orders:
+                if high >= order.price + ticksize:
+                    order.status = OrderStatus.FILLED
+                    filled_orders.append(order)
+        else:
+            # Execute short orders first
+            for order in short_orders:
+                if high >= order.price + ticksize:
+                    order.status = OrderStatus.FILLED
+                    filled_orders.append(order)
+            # Then execute long orders
+            for order in long_orders:
+                if low <= order.price - ticksize:
                     order.status = OrderStatus.FILLED
                     filled_orders.append(order)
                     
         return filled_orders
 
     def execute_order(self, order: Union[LimitOrder, MarketOrder]) -> Tuple[bool, float]:
-
         symbol = order.symbol
         position = self.positions[symbol]
         old_position_size = position.current_quantity
@@ -193,21 +257,45 @@ class OrderManager:
             trade_size=trade_size,
             fee_rate=fee_rate
         )
-        self.wallet_balance += realized_pnl
+        
+        # Update wallet balance with realized PnL minus fees
+        net_pnl = realized_pnl - fee_paid
+        self.wallet_balance += net_pnl
         position.total_realized_pnl += realized_pnl
         position.total_fee_paid += fee_paid
 
         # Remove the filled order from active orders
         if symbol in self.active_orders:    
             self.active_orders[symbol] = [o for o in self.active_orders[symbol] if o != order]
-          # Log execution
+            
+        # Log execution with net PnL (realized PnL minus fees)
         self.logger.log_trade_execution(
             order.timestamp,
             symbol,
             order.side.value,
             order.price,
             order.quantity,
-            realized_pnl,
+            realized_pnl, 
             fee_paid
         )
+        
+        # Log position state after execution
+        self.logger.log_position_state(
+            order.timestamp,
+            symbol,
+            position.current_quantity,
+            position.previous_entry_price or 0.0,
+            position.unrealized_pnl,
+            position.total_realized_pnl,
+            self._get_leverage(symbol, order.price),
+            position.total_fee_paid
+        )
+        
+        return True, net_pnl
+        
+    def _get_leverage(self, symbol: str, price: float) -> float:
+        """Calculate leverage for a symbol at given price"""
+        position = self.positions[symbol]
+        position_value = position.current_quantity * price
+        return abs(position_value) / self.wallet_balance if self.wallet_balance > 0 else 0.0
    

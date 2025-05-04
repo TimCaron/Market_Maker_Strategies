@@ -1,6 +1,7 @@
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 from datetime import datetime
+from orders import LimitOrder, MarketOrder
 
 class MarketMakingLogger:
     def __init__(self, log_file: str = 'market_making.log', verbosity: int = 1):
@@ -64,10 +65,11 @@ class MarketMakingLogger:
             self.logger.debug(msg)
     
     def log_position_state(self, timestamp: int, symbol: str, position_size: float, entry_price: float,
-                          unrealized_pnl: float, realized_pnl: float, leverage: float):
-        if self.verbosity >= 2:  # DEBUG only
-            msg = f"[Position] {symbol} - Time: {timestamp} - Size: {position_size:.4f} Entry: {entry_price:.2f} uPnL: {unrealized_pnl:.2f} rPnL: {realized_pnl:.2f} Leverage: {leverage:.2f}x"
-            self.logger.debug(msg)
+                          unrealized_pnl: float, realized_pnl: float, leverage: float, total_fee_paid: float):
+        """Log position state including average entry price, current quantity, and total fees paid"""
+        msg = f"[Position] {symbol} - Time: {timestamp} - Size: {position_size:.4f} AvgEntry: {entry_price:.2f} uPnL: {unrealized_pnl:.2f} rPnL: {realized_pnl:.2f} Fees: {total_fee_paid:.2f} Leverage: {leverage:.2f}x"
+        if self.verbosity >= 1:  # INFO level
+            self.logger.info(msg)
     
     def log_strategy_decision(self, timestamp: int, symbol: str, price: float, position_size: float,
                             target_pos: float, bid: float, ask: float, reason: str):
@@ -166,5 +168,17 @@ class MarketMakingLogger:
     def log_position_close(self, timestamp: int, symbol: str, reason: str, position_size: float, close_price: float):
         """Log position closing details"""
         msg = f"[Position Close] {symbol} - Time: {timestamp} - Size: {position_size:.4f} Price: {close_price:.2f} - Reason: {reason}"
+        if self.verbosity >= 1:  # INFO and DEBUG
+            self.logger.info(msg)
+
+    def log_remaining_positions(self, timestamp: int, symbol: str, long_quantity: float, short_quantity: float):
+        """Log remaining long and short positions for a symbol"""
+        msg = f"[Remaining possible qty] {symbol} - Time: {timestamp} - Long: {long_quantity:.4f} Short: {short_quantity:.4f}"
+        if self.verbosity >= 1:  # INFO and DEBUG
+            self.logger.info(msg)
+
+    def log_order_cancellation(self, timestamp: int, symbol: str, order: Union[LimitOrder, MarketOrder]):
+        """Log order cancellation details"""
+        msg = f"[Order Cancellation] {symbol} - Time: {timestamp} - {order.side.value.upper()} {order.order_type.value} - Price: {order.price:.2f} Qty: {order.quantity:.4f}"
         if self.verbosity >= 1:  # INFO and DEBUG
             self.logger.info(msg)

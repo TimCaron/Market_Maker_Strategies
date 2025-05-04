@@ -1,6 +1,6 @@
 from typing import Dict, List, Any
 from orders import LimitOrder, OrderSide
-from .base_risk_strategy import BaseRiskStrategy, RiskParameters, RiskMetrics
+from .base_risk_strategy import BaseRiskStrategy, RiskStrategyParameters, RiskMetrics
 
 class BasicRiskStrategy(BaseRiskStrategy):
     """Basic implementation of risk management strategy"""
