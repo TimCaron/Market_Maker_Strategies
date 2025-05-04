@@ -246,8 +246,8 @@ The results include visualizations of:
 
 ## License
 
-[Add your license here]
+MIT licence
 
 ## Contact
 
-[Add your contact information here]
+timcaron373@gmail.com
