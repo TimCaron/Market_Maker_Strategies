@@ -1,6 +1,6 @@
 # Market Making Strategy Backtesting Framework
 
-A Python-based framework for backtesting sophisticated market making strategies across multiple cryptocurrency pairs. This tool implements limit order-based market making simulations with configurable risk management and trading strategies, inspired by Stoikov's "Avellaneda-Stoikov" model (Stoikov, 2006).
+A Python-based framework for backtesting sophisticated market making strategies across multiple cryptocurrency pairs. This tool implements limit order-based market making simulations with configurable risk management and trading strategies, inspired by Stoikov's "Avellaneda-Stoikov" model (Stoikov, 2006). Still under massive development ; this readme is AI generated and not entirely accurate. Lots of todos.
 
 ## Project Scope
 
@@ -233,7 +233,7 @@ The results include visualizations of:
 ## TODOS
 1. Work on trading Strategies; make simple examples with city names 
 2. Actually implement Stoikov , not done yet
-3. This readme is AI generated and not entirely correct ; will be updated later
+3. This readme is AI generated and will be updated later
 ## Contributing
 
 1. Fork the repository
