@@ -105,7 +105,7 @@ if __name__ == '__main__':
     period = '1d'
     mode = 'single_run'
 
-    # Strategy parameters
+    # Mexico Strategy parameters
     btc_params = {
         'q_factor': 0.0,  
         'upnl_factor': 0.0,
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         'window_high_low': 3,
         'use_adaptive_sizes': True
     }
-    
+    # Mexico ETH parameters
     eth_params = {
         'q_factor': 0,  
         'upnl_factor': 0,
@@ -137,18 +137,43 @@ if __name__ == '__main__':
         'window_high_low': 3,
         'use_adaptive_sizes': True
     }
-    
+    # Stoikov btc parameters
+    btc_stoikov_params = {
+        'risk_aversion': 0.0001,
+        'market_depth': 100000,
+        'window_vol': 7, # to compute volatility
+    }
+    # Stoikov eth parameters
+    eth_stoikov_params = {
+        'risk_aversion': 0.0001,
+       'market_depth': 100000,
+        'window_vol': 7
+    }
+
     # Configure symbols and strategies
     mono_symbol = 0
-    if mono_symbol:
-        symbols = ['BTCUSDT']
-        trading_strategies = {'BTCUSDT': {'Mexico': btc_params}}
-    else:
-        symbols = ['BTCUSDT', 'ETHUSDT']
-        trading_strategies = {
-            'BTCUSDT': {'Mexico': btc_params},
-            'ETHUSDT': {'Mexico': eth_params}
-        }
+    strat = 'Stoikov'
+
+    if strat == 'Stoikov':
+        if mono_symbol:
+            symbols = ['BTCUSDT']
+            trading_strategies = {'BTCUSDT': {'Stoikov': btc_stoikov_params}}
+        else:
+            symbols = ['BTCUSDT', 'ETHUSDT']
+            trading_strategies = {
+                'BTCUSDT': {'Stoikov': btc_stoikov_params},
+                'ETHUSDT': {'Stoikov': eth_stoikov_params}      
+            }
+    elif strat == 'Mexico':
+        if mono_symbol:
+            symbols = ['BTCUSDT']
+            trading_strategies = {'BTCUSDT': {'Mexico': btc_params}}
+        else:
+            symbols = ['BTCUSDT', 'ETHUSDT']
+            trading_strategies = {
+                'BTCUSDT': {'Mexico': btc_params},
+                'ETHUSDT': {'Mexico': eth_params}
+            }
 
     # Initialize risk management strategy
     risk_params = RiskStrategyParameters(
@@ -163,4 +188,4 @@ if __name__ == '__main__':
     risk_strategy = BasicRiskStrategy(risk_params)
 
     # Run simulation
-    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=0)
+    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=2)

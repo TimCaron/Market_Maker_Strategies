@@ -14,7 +14,6 @@ class OrderLevel:
     price: float
     size: float
 
-
 @dataclass
 class StrategyInput:
     """Input for any strategy """

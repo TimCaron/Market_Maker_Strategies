@@ -78,8 +78,9 @@ class OrderManager:
         remaining_long = max_position - current_position - long_quantity
         remaining_short = max_position + current_position - short_quantity
         
-        # Log remaining capacity for new orders
-        self.logger.log_remaining_positions(timestamp, symbol, remaining_long, remaining_short)
+        # Only log when called for buy orders to avoid duplicate logging
+        if side == OrderSide.BUY:
+            self.logger.log_remaining_positions(timestamp, symbol, remaining_long, remaining_short)
         
         if side == OrderSide.BUY:
             return remaining_long
@@ -103,9 +104,6 @@ class OrderManager:
         # Calculate remaining capacity considering active orders
         remaining_long_capacity = self.get_remaining_capacity(timestamp, symbol, OrderSide.BUY, max_position)
         remaining_short_capacity = self.get_remaining_capacity(timestamp, symbol, OrderSide.SELL, max_position)
-        
-        # Log remaining capacity
-        self.logger.log_remaining_positions(timestamp, symbol, remaining_long_capacity, remaining_short_capacity)
         
         # Generate buy orders
         for level in strategy_output.buy_levels:
@@ -288,7 +286,8 @@ class OrderManager:
             position.unrealized_pnl,
             position.total_realized_pnl,
             self._get_leverage(symbol, order.price),
-            position.total_fee_paid
+            position.total_fee_paid,
+            is_final=False  # This is the final position state at the end of the timestamp
         )
         
         return True, net_pnl

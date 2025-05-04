@@ -1,78 +1,72 @@
 from typing import Dict, List, Optional
 from dataclasses import dataclass
-from .base_strategy import BaseStrategy, StrategyParameters, StrategyOutput, OrderLevel
+from .base_strategy import BaseStrategy, StrategyParameters, StrategyOutput, OrderLevel, StrategyInput
 import numpy as np
 
 @dataclass
 class StoikovParameters(StrategyParameters):
-    """Parameters for Stoikov market making strategy"""
-    a: float  # Spread factor
-    k: float  # Mean reversion factor
-    max_orders: int  # Maximum number of orders per side
+    risk_aversion: float  # gamma
+    market_depth: float   # k
+    window_vol: int
 
-class StoikovStrategy(BaseStrategy):
-    """Implementation of Stoikov market making strategy"""
-    ### Not correct, well i dont think it is ; todo
     
+class StoikovStrategy(BaseStrategy):
+    # My understanding of the no time limit Stoikov strategy
     def __init__(self, parameters: StoikovParameters):
         super().__init__(parameters)
-        self.params = parameters  # Type hint for IDE support
-    
-    def calculate_order_levels(
-        self,
-        timestamp: int,
-        current_price: float,
-        position_size: float,
-        indicators: Dict[str, float],
-        ohlc_history: Optional[Dict[str, List[float]]] = None
-    ) -> StrategyOutput:
-        """Calculate reservation price and order levels using Stoikov model
+        self.params = parameters  # critical to compute indicators
+
+    def calculate_order_levels(self, 
+        ticksize, 
+        strategy_input: StrategyInput) -> StrategyOutput:
         
-        The strategy places orders symmetrically around a reservation price,
-        adjusting spreads based on volatility and inventory.
-        """
-        # Extract parameters
-        a = self.params.a
-        k = self.params.k
-        ticksize = self.params.ticksize
-        max_orders = self.params.max_orders
-        max_position = self.params.max_position
-        
-        # Use volatility from indicators if available
-        volatility = indicators.get('volatility', 0.01)
-        
-        # Calculate reservation price with inventory adjustment
-        inventory_impact = k * position_size
-        reservation_price = current_price - inventory_impact
-        
-        # Calculate base spread using volatility
-        base_spread = 2 * a * volatility
-        
-        # Generate order levels
-        buy_levels = []
-        sell_levels = []
-        
-        for i in range(max_orders):
-            # Increase spread for each level away from reservation price
-            level_spread = base_spread * (1 + i * 0.5)
-            
-            # Calculate prices and round to ticksize
-            buy_price = round((reservation_price - level_spread) / ticksize) * ticksize
-            sell_price = round((reservation_price + level_spread) / ticksize) * ticksize
-            
-            # Calculate sizes (decrease as we move away from reservation price)
-            size_factor = np.exp(-i * 0.5)  # Exponential decay
-            max_trade_size = max_position - abs(position_size)
-            
-            buy_size = round(max_trade_size * size_factor * 0.2, 8)
-            sell_size = round(max_trade_size * size_factor * 0.2, 8)
-            
-            # Add levels if size is meaningful
-            if buy_size >= 0.0001:
-                buy_levels.append(OrderLevel(price=buy_price, size=buy_size))
-            if sell_size >= 0.0001:
-                sell_levels.append(OrderLevel(price=sell_price, size=sell_size))
-        
+        S = strategy_input.current_price #in USD per unit asset, eg. 80000 for 1 BTC -> ok
+        q = strategy_input.current_inventory # in asset units, eg. 0.001 BTC
+        min_spread = strategy_input.minimal_spread
+        indicators = strategy_input.indicators
+        sigma = indicators.get('volatility', 0.0) #volatility
+        # now i'm not sure this is the right sigma but this will be taken care of by the right gamma
+        # in order to make it more realistic
+        p = self.parameters
+        gamma = p.risk_aversion
+        k = p.market_depth
+
+        # My understanding is that Stoikov has no limit on the cumulative inventory
+        # which is weird, but leave it for now ; to cope with this i'll keep the aggressivity factor
+        # from risk management policy
+        aggressivity = strategy_input.agressivity # say 0.1
+        buy_size = strategy_input.max_inventory*aggressivity
+        sell_size = strategy_input.max_inventory*aggressivity
+        # Reservation price shifts against inventory
+        reservation_price = S - gamma * sigma**2 * q
+
+        # Optimal spread from Stoikov closed-form
+        optimal_spread = (2 / k) + gamma * sigma**2
+
+        # Adjust to enforce minimal spread
+        spread = max(optimal_spread, min_spread) #in percentage, so:
+        spread = S*spread
+        # Determine quote prices
+        half_spread = spread / 2
+        ask_price = reservation_price + half_spread
+        ask_price = round((ask_price) / ticksize) * ticksize
+
+        bid_price = reservation_price - half_spread
+        bid_price = round((bid_price) / ticksize) * ticksize
+
+        # quote only one order at a time
+        if bid_price < S - min_spread:
+            buy_levels = [OrderLevel(price=bid_price, size=buy_size)]
+        else:
+            buy_levels = []
+
+        if ask_price > S + min_spread:
+            sell_levels = [OrderLevel(price=ask_price, size=sell_size)]
+        else:
+            sell_levels = []
+
+        self.log_strategy_debug(f"reservation_price={reservation_price:.2f}, bid={bid_price:.2f}, ask={ask_price:.2f}, spread={spread:.4f}")
+
         return StrategyOutput(
             reservation_price=reservation_price,
             buy_levels=buy_levels,

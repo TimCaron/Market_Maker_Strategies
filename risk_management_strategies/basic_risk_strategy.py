@@ -29,8 +29,9 @@ class BasicRiskStrategy(BaseRiskStrategy):
             new_position_value += order_value
         else:
             new_position_value -= order_value
-            
-        allowed_margin_per_symbol = risk_metrics.current_margin/n_symbols
+        
+        # is already normalized by n_symbols
+        allowed_margin_per_symbol = risk_metrics.current_margin
         # Calculate new leverage on a per symbol basis
         new_leverage = abs(new_position_value) / allowed_margin_per_symbol
         max_leverage_per_symbol = self.parameters.max_leverage/n_symbols
@@ -63,6 +64,7 @@ class BasicRiskStrategy(BaseRiskStrategy):
         if abs(total_leverage) >= self.parameters.max_leverage:
             self.logger.log_risk_emergency_exit('Total', total_leverage, self.parameters.max_leverage)
             emergency_exits['Total'] = True
+            
         return emergency_exits
     
     def should_stop_trading(
@@ -81,9 +83,9 @@ class BasicRiskStrategy(BaseRiskStrategy):
         Determine if simulation should continue based on risk metrics:
         Stop if total margin falls below early stopping threshold
         """
-        # Check if margin has fallen too low compared to initial margin
-        current_margin = next(iter(risk_metrics.values())).current_margin  # All symbols have same margin
-        margin_ratio = current_margin / initial_margin
+        # Calculate total margin across all symbols
+        total_margin = sum(metrics.current_margin for metrics in risk_metrics.values())
+        margin_ratio = total_margin / initial_margin
         
         if margin_ratio <= self.parameters.early_stopping_margin:
             self.logger.log_risk_margin_ratio(margin_ratio, self.parameters.early_stopping_margin)

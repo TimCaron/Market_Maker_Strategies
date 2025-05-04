@@ -64,12 +64,31 @@ class MarketMakingLogger:
             msg = f"[Indicators] {symbol} - Time: {timestamp} - {indicator_str}"
             self.logger.debug(msg)
     
-    def log_position_state(self, timestamp: int, symbol: str, position_size: float, entry_price: float,
-                          unrealized_pnl: float, realized_pnl: float, leverage: float, total_fee_paid: float):
-        """Log position state including average entry price, current quantity, and total fees paid"""
-        msg = f"[Position] {symbol} - Time: {timestamp} - Size: {position_size:.4f} AvgEntry: {entry_price:.2f} uPnL: {unrealized_pnl:.2f} rPnL: {realized_pnl:.2f} Fees: {total_fee_paid:.2f} Leverage: {leverage:.2f}x"
-        if self.verbosity >= 1:  # INFO level
-            self.logger.info(msg)
+    def log_position_state(
+        self,
+        timestamp: int,
+        symbol: str,
+        size: float,
+        avg_entry: float,
+        unrealized_pnl: float,
+        realized_pnl: float,
+        leverage: float,
+        fees: float,
+        is_final: bool = False
+    ) -> None:
+        """Log position state
+        
+        Args:
+            is_final: If True, indicates this is the final position state at the end of the timestamp
+        """
+        prefix = "[Position at end of timestamp]" if is_final else "[Position]"
+        message = (
+            f"{prefix} {symbol} - Time: {timestamp} - "
+            f"Size: {size:.4f} AvgEntry: {avg_entry:.2f} "
+            f"uPnL: {unrealized_pnl:.2f} rPnL: {realized_pnl:.2f} "
+            f"Fees: {fees:.2f} Leverage: {leverage:.2f}x"
+        )
+        self.logger.info(message)
     
     def log_strategy_decision(self, timestamp: int, symbol: str, price: float, position_size: float,
                             target_pos: float, bid: float, ask: float, reason: str):

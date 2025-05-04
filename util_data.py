@@ -94,7 +94,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
     
     # Get default window lengths
     default_window = DEFAULT_PARAMS['default_window']  # Default window length if no strategy specified
-    
+
     # Prepare OHLC data and configs for each symbol
     ohlc_dict = {}
     symbol_configs = {}
@@ -109,7 +109,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
         window_mom = default_window
         window_high_low = default_window
 
-        if strategies and symbol in strategies:
+        if symbol in strategies:
             strategy = strategies[symbol]
             if hasattr(strategy, 'params'):
                 window_vol = getattr(strategy.params, 'window_vol', default_window)
@@ -152,6 +152,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
                 symbol_indicators[idx][indicator_name] = float(val)
         
         all_indicators[symbol] = symbol_indicators
+        print(all_indicators[symbol])
     # format is like :
     # {
     # 'BTCUSDT': {

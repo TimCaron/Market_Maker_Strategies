@@ -252,7 +252,8 @@ class MarketMakerSimulation:
                 position.unrealized_pnl,
                 position.total_realized_pnl,
                 self.current_risk_metrics[symbol].current_leverage,
-                position.total_fee_paid
+                position.total_fee_paid,
+                is_final=True
             )
 
         # Get wallet balance from order manager
@@ -300,7 +301,6 @@ class MarketMakerSimulation:
         current_quantity = position.current_quantity
         upnl = position.update_unrealized_pnl(open_price)
 
-     
         return self._get_new_order_list(t, symbol, strategy, open_price,
             current_indicators, current_quantity, upnl, local_past_ohlc
         )
@@ -322,7 +322,7 @@ class MarketMakerSimulation:
         # Calculate max inventory and create strategy input
         aggressivity = self.risk_strategy.parameters.aggressivity
         # max lev per symbol
-        max_leverage = self.risk_strategy.parameters.max_leverage/self.n_symbols 
+        max_leverage = self.risk_strategy.parameters.max_leverage
         max_inventory = max_leverage*self.per_symbol_margin/open_price #in abs value in asset unit
         strategy_input = StrategyInput(
             timestamp=t,
