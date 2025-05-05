@@ -59,7 +59,7 @@ class BaseStrategy(ABC):
         self.logger.log_strategy_debug(strategy_name, message)
     
     @abstractmethod
-    def calculate_order_levels(self, StrategyInput) -> StrategyOutput:
+    def calculate_order_levels(self, ticksize:float, StrategyInput:StrategyInput) -> StrategyOutput:
         """Calculate reservation price and order levels
         Args:
             StrategyInput containing relevant data to compute a prediction

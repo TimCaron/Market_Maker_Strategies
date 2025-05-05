@@ -6,7 +6,7 @@ import numpy as np
 @dataclass
 class StoikovParameters(StrategyParameters):
     risk_aversion: float  # gamma
-    market_depth: float   # k
+    gamma_spread: float   # k
     window_vol: int
 
     
@@ -16,36 +16,40 @@ class StoikovStrategy(BaseStrategy):
         super().__init__(parameters)
         self.params = parameters  # critical to compute indicators
 
-    def calculate_order_levels(self, 
-        ticksize, 
-        strategy_input: StrategyInput) -> StrategyOutput:
+    def calculate_order_levels(self,
+                               ticksize: float,
+                               strategy_input: StrategyInput) -> StrategyOutput:
         
         S = strategy_input.current_price #in USD per unit asset, eg. 80000 for 1 BTC -> ok
         q = strategy_input.current_inventory # in asset units, eg. 0.001 BTC
         min_spread = strategy_input.minimal_spread
         indicators = strategy_input.indicators
         sigma = indicators.get('volatility', 0.0) #volatility
-        # now i'm not sure this is the right sigma but this will be taken care of by the right gamma
-        # in order to make it more realistic
+        # This sigma is the np.std of the log returns
         p = self.parameters
         gamma = p.risk_aversion
-        k = p.market_depth
+        gamma_spread = p.gamma_spread
 
         # My understanding is that Stoikov has no limit on the cumulative inventory
-        # which is weird, but leave it for now ; to cope with this i'll keep the aggressivity factor
+        # which is weird, but leave it for now ; to cope with this I'll keep the aggressivity factor
         # from risk management policy
         aggressivity = strategy_input.agressivity # say 0.1
         buy_size = strategy_input.max_inventory*aggressivity
         sell_size = strategy_input.max_inventory*aggressivity
         # Reservation price shifts against inventory
-        reservation_price = S - gamma * sigma**2 * q
+        reservation_price = S - gamma * sigma**2 * q * S
+        # because q is in asset unit ; and gamma * sigma**2 should be in basis point (my understanding)
 
         # Optimal spread from Stoikov closed-form
-        optimal_spread = (2 / k) + gamma * sigma**2
-
+        # optimal_spread = (2 / k) + gamma * sigma**2 # k 'market depth' is the depth of the order book
+        # so 2/k is a constant spread in fact
+        # 2/k >= my minimal spred means k <= 2/min_spread \approx 2/0.001 = 2000 otherwise doesnt make sense
+        # we should probably replace 2/k by minimal spread
+        # lets do that,
+        # also same gamma is weird and dosent work : lets have two different gamma
+        optimal_spread = min_spread + gamma_spread * sigma**2
         # Adjust to enforce minimal spread
-        spread = max(optimal_spread, min_spread) #in percentage, so:
-        spread = S*spread
+        spread = S*optimal_spread
         # Determine quote prices
         half_spread = spread / 2
         ask_price = reservation_price + half_spread
@@ -67,9 +71,11 @@ class StoikovStrategy(BaseStrategy):
 
         # Log detailed Stoikov formula components
         message = (
-            f"Components| q: {q:.2f}, gamma: {gamma:.4f}, sigma: {sigma:.4f},\n"
+            f"Components| \n"
+            f"q: {q:.2f},  sigma: {sigma:.4f}\n"
+            f"gamma (res price): {gamma:.4f}, gamma*vol {gamma*sigma**2}\n"
             f"S: {S:.2f}, reservation_price: {reservation_price:.2f},\n"
-            f"k: {k:.2f}, 2/k: {2 / k:.4f}, gamma*sigma^2: {gamma * sigma ** 2:.4f},\n"
+            f"gamma (spread): {gamma_spread:.4f}, gamma*vol {gamma_spread*sigma**2}\n"
             f"optimal_spread: {optimal_spread:.8f}, min_spread: {min_spread:.8f}"
         )
         self.log_strategy_debug("Stoikov", message)

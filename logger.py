@@ -111,7 +111,7 @@ class MarketMakingLogger:
     # Risk Management Logging Methods
     def log_risk_order_validation(self, order, value: float, min_value: float):
         """Log order validation details"""
-        msg = (f"Risk Management: Order rejected - Value (${value:.2f}) below minimum (${min_value:.2f})")
+        msg = (f"Risk Management: Order {order.side} rejected - Value (${value:.2f}) below minimum (${min_value:.2f})")
         if self.verbosity >= 1:
             self.logger.info(msg)
             
@@ -124,7 +124,7 @@ class MarketMakingLogger:
 
     def log_risk_leverage_validation(self, order, new_leverage: float, max_leverage: float):
         """Log leverage validation details"""
-        msg = (f"Risk Management: Order rejected - New leverage ({new_leverage:.2f}) would exceed max ({max_leverage:.2f})"
+        msg = (f"Risk Management: Order {order.side} rejected - New leverage ({new_leverage:.2f}) would exceed max ({max_leverage:.2f})"
                f" Symbol: {order.symbol}, Side: {order.side.value}, Price: {order.price:.2f}, Quantity: {order.quantity:.8f}")
         self.logger.debug(msg)
 

@@ -139,14 +139,14 @@ if __name__ == '__main__':
     }
     # Stoikov btc parameters
     btc_stoikov_params = {
-        'risk_aversion': 1,
-        'market_depth': 100000,
+        'risk_aversion': 0.1, # gamma
+        'gamma_spread': 1, # k
         'window_vol': 7, # to compute volatility
     }
     # Stoikov eth parameters
     eth_stoikov_params = {
-        'risk_aversion': 0.0001,
-       'market_depth': 100000,
+        'risk_aversion': 0.1, # gamma
+        'gamma_spread': 1,  # k
         'window_vol': 7
     }
 

@@ -45,7 +45,7 @@ DEFAULT_PARAMS = {
     # in basis point
     'valid_periods': ['1', '3', '5', '15', '30', '60', '120', '240', '360', '720', '1d'],
     'default_window' : 14, #default window length for any indicator when not specified
-    'data_size' : 20, # debug parameter, to be removed later : on how many data points to run the simulation
+    'data_size' : 2000, # debug parameter, to be removed later : on how many data points to run the simulation
     # Risk management parameters
     'max_leverage': 1.0,  # Maximum allowed total leverage accross all symbols (when opening new positions)
     'aggressivity': 0.1, # at each timestamp the total new buy or total new sell order cannot exceed
