@@ -33,14 +33,15 @@ class StrategyInput:
 
 @dataclass
 class StrategyOutput:
-    """Output from strategy containing reservation price and order levels"""
+    """Output from strategy containing reservation price, order levels and spread information"""
     reservation_price: float #not used in trading, but for visualization)
     buy_levels: List[OrderLevel]  # Sorted by price descending (the first closest to current price): todo
     sell_levels: List[OrderLevel]  # Sorted by price ascending : (same) todo
+    spread: float = 0.0  # Current spread value computed by the strategy
     # buys levels guaranteed to be below current_price - minimal_spread
     # sell levels guaranteed to be above current_price + minimal_spread
     def repr(self) -> str:
-        return f"StrategyOutput(reservation_price={self.reservation_price}, buy_levels={self.buy_levels}, sell_levels={self.sell_levels})"
+        return f"StrategyOutput(reservation_price={self.reservation_price}, spread={self.spread}, buy_levels={self.buy_levels}, sell_levels={self.sell_levels})"
         
 class BaseStrategy(ABC):
     """Abstract base class for market making strategies"""
@@ -50,12 +51,12 @@ class BaseStrategy(ABC):
         self.logger = MarketMakingLogger()
         
     def log_strategy_info(self, message: str):
-        """Log strategy-specific information at INFO level"""
+        """Log strategy information message"""
         self.logger.log_strategy_info(self.__class__.__name__, message)
         
-    def log_strategy_debug(self, message: str):
-        """Log strategy-specific debug information"""
-        self.logger.log_strategy_debug(self.__class__.__name__, message)
+    def log_strategy_debug(self, strategy_name: str, message: str):
+        """Log strategy debug message"""
+        self.logger.log_strategy_debug(strategy_name, message)
     
     @abstractmethod
     def calculate_order_levels(self, StrategyInput) -> StrategyOutput:

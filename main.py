@@ -94,7 +94,7 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
         )
         
         # Process and display results
-        process_results(results, symbols, trading_strategies)
+        process_results(results, symbols, trading_strategies, risk_strategy.parameters.__dict__)
 
     else:
         raise ValueError(f"Invalid mode: {mode}. Must be 'single_run'")
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     }
     # Stoikov btc parameters
     btc_stoikov_params = {
-        'risk_aversion': 0.0001,
+        'risk_aversion': 1,
         'market_depth': 100000,
         'window_vol': 7, # to compute volatility
     }
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     }
 
     # Configure symbols and strategies
-    mono_symbol = 0
+    mono_symbol = True
     strat = 'Stoikov'
 
     if strat == 'Stoikov':

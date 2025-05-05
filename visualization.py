@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List, Union, Optional
 from position import Position
+from constants import DEFAULT_PARAMS
 
 # old class, to be updated later
 
@@ -16,7 +17,9 @@ def plot_strategy_metrics(
     reservation_price_history: Dict[str, List[float]],
     price_history: Dict[str, List[float]],
     realized_pnl_history: Dict[str, List[float]],
-    params: Optional[Dict[str, Dict[str, Dict[str, Union[float, int]]]]] = None
+    spread_history: Dict[str, List[float]],
+    params: Optional[Dict[str, Dict[str, Dict[str, Union[float, int]]]]] = None,
+    risk_params: Optional[Dict] = None
 ):
     """Plot key metrics from market making strategy simulation."""
     # Create figure with subplots (2x2 grid)
@@ -42,17 +45,20 @@ def plot_strategy_metrics(
     # Plot 2: Cumulative Realized PnL History
     ax2 = plt.subplot(2, 2, 2)
     
-    # Plot cumulative realized PnL for each symbol
+    # Plot cumulative realized PnL for each symbol as percentage of initial margin
+    initial_margin = margin_history[0] if margin_history else initial_cash
     for symbol, pnl_history in realized_pnl_history.items():
-        ax2.plot(pnl_history, label=f'{symbol} PnL', alpha=0.7)
+        pnl_percent = 100 * np.array(pnl_history) / initial_margin
+        ax2.plot(pnl_percent, label=f'{symbol} PnL %', alpha=0.7)
     
-    # Plot total cumulative PnL
+    # Plot total cumulative PnL as percentage
     total_pnl = np.zeros(len(next(iter(realized_pnl_history.values()))))
     for pnl_history in realized_pnl_history.values():
         total_pnl += np.array(pnl_history)
-    ax2.plot(total_pnl, label='Total PnL', color='black', linewidth=2)
+    total_pnl_percent = 100 * total_pnl / initial_margin
+    ax2.plot(total_pnl_percent, label='Total PnL %', color='black', linewidth=2)
     
-    ax2.set_title('Cumulative Realized PnL History')
+    ax2.set_title('Cumulative Realized PnL History (%)')
     ax2.legend()
     ax2.grid(True)
     
@@ -70,22 +76,28 @@ def plot_strategy_metrics(
     ax3.legend()
     ax3.grid(True)
     
-    # Plot 4: Reservation Price vs Actual Price (normalized)
+    # Plot 4: Spread History and Price Differences
     ax4 = plt.subplot(2, 2, 4)
     for symbol in realized_pnl_history.keys():
-        # Normalize both series to initial price
-        initial_price = price_history[symbol][0]
-        if initial_price != 0:  # Add check for zero
-            norm_prices = np.array(price_history[symbol]) / initial_price * initial_cash
-            norm_reservation = np.array(reservation_price_history[symbol]) / initial_price * initial_cash
-            
-            ax4.plot(norm_prices, label=f'{symbol} Price', alpha=0.7)
-            ax4.plot(norm_reservation, label=f'{symbol} Reservation', linestyle='--', alpha=0.7)
+        # Plot spread history as percentage of current price
+        price_arr = np.array(price_history[symbol])
+        spread_arr = np.array(spread_history[symbol])
+        rel_spread = 100 * spread_arr / price_arr  # Spread in percent
+        ax4.plot(rel_spread, label=f'{symbol} Spread %', color='blue', alpha=0.7)
+        
+        # Add minimal spread reference line from DEFAULT_PARAMS
+        minimal_spread = 100 * DEFAULT_PARAMS['minimal_spread']
+        ax4.axhline(y=minimal_spread, color='gray', linestyle='--', alpha=0.3, label=f'{symbol} Min Spread %')
+        
+        # Calculate and plot relative price difference in percent
+        if price_history[symbol][0] != 0:
+            res_arr = np.array(reservation_price_history[symbol])
+            rel_diff = 100 * (res_arr - price_arr) / price_arr  # Difference in percent
+            ax4.plot(rel_diff, label=f'{symbol} Res-Price Diff %', color='red', linestyle='--', alpha=0.7)
         else:
-            # Log warning if initial price is zero
-            print(f"Warning: Initial price for {symbol} is zero, skipping normalization")
+            print(f"Warning: Initial price for {symbol} is zero, skipping relative difference")
     
-    ax4.set_title('Normalized Price vs Reservation Price')
+    ax4.set_title('Spread and Reservation Price Difference (%)')
     ax4.legend()
     ax4.grid(True)
     

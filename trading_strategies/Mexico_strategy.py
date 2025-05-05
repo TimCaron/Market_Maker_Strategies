@@ -91,12 +91,12 @@ class MexicoStrategy(BaseStrategy):
         # Generate order levels
         buy_levels = []
         sell_levels = []
-        self.log_strategy_debug(f"Computed reservation: {reservation_price:.2f} | spacing: {spacing*current_price:.8f} | Volatility: {volatility:.8f} | Momentum: {momentum:.8f}")
+        self.log_strategy_debug("Mexico", f"Computed reservation: {reservation_price:.2f} | spacing: {spacing*current_price:.8f} | Volatility: {volatility:.8f} | Momentum: {momentum:.8f}")
         count_buy, count_sell = 0, 0
 
         #first check valid order numbers
-        for i in range(1, max_orders+1):
-            level_spread = i*spacing*current_price
+        for i in range(0, max_orders):
+            level_spread = spacing*current_price/2 + i*spacing*current_price
             buy_price = round((reservation_price - level_spread) / ticksize) * ticksize
             sell_price = round((reservation_price + level_spread) / ticksize) * ticksize
             if buy_price < current_price - minimal_spread:
@@ -127,5 +127,6 @@ class MexicoStrategy(BaseStrategy):
         return StrategyOutput(
             reservation_price=reservation_price,
             buy_levels=buy_levels,
-            sell_levels=sell_levels
+            sell_levels=sell_levels,
+            spread=spacing * current_price  # Store the computed spread
         )

@@ -12,7 +12,7 @@ from simulation.performance_metrics import (
 )
 
 
-def process_results(results: Dict, symbols: List[str], strategies: Dict) -> None:
+def process_results(results: Dict, symbols: List[str], strategies: Dict, risk_params: Dict) -> None:
     """
     Process and display simulation results.
     
@@ -20,6 +20,7 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict) -> None
         results: Dictionary containing simulation results
         symbols: List of symbols that were simulated
         strategies: Dictionary containing strategy configurations
+        risk_params: Dictionary containing risk strategy parameters
     """
     # Calculate returns and performance metrics
     wallet_history = results['wallet_balance_history']
@@ -92,7 +93,9 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict) -> None
         'reservation_price_history': results['reservation_price_history'],
         'price_history': results['price_history'],
         'realized_pnl_history': results['realized_pnl_history'],
-        'params': strategies
+        'spread_history': results['spread_history'],
+        'params': strategies,
+        'risk_params': risk_params
     }
    
    
@@ -108,5 +111,7 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict) -> None
         reservation_price_history=results['reservation_price_history'],
         price_history=results['price_history'],
         realized_pnl_history=results['realized_pnl_history'],
-        params=strategies
+        spread_history=results['spread_history'],
+        params=strategies,
+        risk_params=risk_params
     )

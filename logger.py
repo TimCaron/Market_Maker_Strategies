@@ -89,14 +89,7 @@ class MarketMakingLogger:
             f"Fees: {fees:.2f} Leverage: {leverage:.2f}x"
         )
         self.logger.info(message)
-    
-    def log_strategy_decision(self, timestamp: int, symbol: str, price: float, position_size: float,
-                            target_pos: float, bid: float, ask: float, reason: str):
-        if self.verbosity >= 2:  # DEBUG only
-            reservation = (bid + ask) / 2
-            msg = f"[Strategy] {symbol} - Time: {timestamp} - Price: {price:.2f} Position: {position_size:.2f} Target: {target_pos:.2f} Reservation: {reservation:.2f} Bid: {bid:.2f} Ask: {ask:.2f} - {reason}"
-            self.logger.debug(msg)
-    
+
     def log_trade_execution(self, timestamp: int, symbol: str, side: str, price: float,
                            quantity: float, pnl: float, fee: float = 0.0):
         msg = f"[Executed Order] {symbol} - Time: {timestamp} - {side.upper()} Price: {price:.2f} Qty: {quantity:.4f} Fee: {fee:.4f} PnL: {pnl:.2f}"
@@ -180,9 +173,31 @@ class MarketMakingLogger:
         self.logger.info(msg)
 
     def log_strategy_debug(self, strategy_name: str, message: str):
-        """Log strategy-specific debug information"""
-        msg = f"[{strategy_name}] {message}"
-        self.logger.debug(msg)
+        """Log strategy-specific debug information with enhanced formatting for formula components"""
+        # Split message into lines for better formatting
+        lines = message.split('\n')
+        formatted_lines = []
+        
+        for line in lines:
+            # Check if this is a formula component line (starts with spaces)
+            if line.startswith('  '):
+                # Keep the indentation and formatting
+                formatted_lines.append(line)
+            else:
+                # Main headers get special formatting
+                formatted_lines.append(line)
+        
+        # Join lines back together
+        formatted_msg = '\n'.join(formatted_lines)
+        msg = f"[{strategy_name}] {formatted_msg}"
+        
+        # Log with special handling for formula debug info
+        if 'Formula Components' in message:
+            # Write to both debug and info levels for formula components
+            self.logger.info(msg)  # Make sure formula components are always visible
+            self.logger.debug(msg)  # Also keep in debug log
+        else:
+            self.logger.debug(msg)
 
     def log_position_close(self, timestamp: int, symbol: str, reason: str, position_size: float, close_price: float):
         """Log position closing details"""

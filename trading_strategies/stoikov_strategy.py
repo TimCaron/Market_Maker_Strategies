@@ -65,10 +65,17 @@ class StoikovStrategy(BaseStrategy):
         else:
             sell_levels = []
 
-        self.log_strategy_debug(f"reservation_price={reservation_price:.2f}, bid={bid_price:.2f}, ask={ask_price:.2f}, spread={spread:.4f}")
-
+        # Log detailed Stoikov formula components
+        message = (
+            f"Components| q: {q:.2f}, gamma: {gamma:.4f}, sigma: {sigma:.4f},\n"
+            f"S: {S:.2f}, reservation_price: {reservation_price:.2f},\n"
+            f"k: {k:.2f}, 2/k: {2 / k:.4f}, gamma*sigma^2: {gamma * sigma ** 2:.4f},\n"
+            f"optimal_spread: {optimal_spread:.8f}, min_spread: {min_spread:.8f}"
+        )
+        self.log_strategy_debug("Stoikov", message)
         return StrategyOutput(
             reservation_price=reservation_price,
             buy_levels=buy_levels,
-            sell_levels=sell_levels
+            sell_levels=sell_levels,
+            spread=spread  # Store the computed spread
         )

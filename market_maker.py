@@ -62,6 +62,7 @@ class MarketMakerSimulation:
         self.reservation_price_history: Dict[str, List[float]] = {symbol: [] for symbol in self.symbols}
         self.price_history: Dict[str, List[float]] = {symbol: [] for symbol in self.symbols}
         self.realized_pnl_history: Dict[str, List[float]] = {symbol: [] for symbol in self.symbols}
+        self.spread_history: Dict[str, List[float]] = {symbol: [] for symbol in self.symbols}  # Track spread history
         self.current_risk_metrics: Dict[str, RiskMetrics] = {}
 
     # Helpers
@@ -336,11 +337,12 @@ class MarketMakerSimulation:
             ohlc_history=local_past_ohlc[symbol] if local_past_ohlc else None
         )
         
-        # Get strategy output and store reservation price
+        # Get strategy output and store reservation price and spread
         symbol_enum = next((s for s in constants.Symbol if s.value == symbol), None)
         ticksize = constants.SYMBOL_CONFIGS[symbol_enum].ticksize
         strategy_output = strategy.calculate_order_levels(ticksize, strategy_input)
         self.reservation_price_history[symbol].append(strategy_output.reservation_price)
+        self.spread_history[symbol].append(strategy_output.spread)  # Track the computed spread
 
         # Generate orders using order manager
         new_orders = self.order_manager.generate_limit_orders(
@@ -393,13 +395,19 @@ class MarketMakerSimulation:
             if t == len(timestamps) - 1:
                 if self.margin_history[-1] > 0:
                     self._close_simulation_positions(t, timestamps, prices)  # Use prices for opening price
+                    # Update reservation price history for final timestamp
+                    for symbol in self.symbols:
+                        self.reservation_price_history[symbol].append(opening_prices[symbol])
+                        self.spread_history[symbol].append(0.0)  # Zero spread at final timestamp
+
                 break
 
             # Handle pre-min_start period
             if t < self.min_start:
-                # For each symbol, set reservation price to current price
+                # For each symbol, set reservation price to current price and spread to zero
                 for symbol in self.symbols:
                     self.reservation_price_history[symbol].append(opening_prices[symbol])
+                    self.spread_history[symbol].append(0.0)  # Zero spread before min_start
                 # Update end of timestamp state
                 self._update_end_of_timestamp(t, timestamps, closes)
                 continue
@@ -448,5 +456,6 @@ class MarketMakerSimulation:
             'global_leverage_history': self.global_leverage_history,
             'reservation_price_history': self.reservation_price_history,
             'price_history': self.price_history,
-            'realized_pnl_history': self.realized_pnl_history
+            'realized_pnl_history': self.realized_pnl_history,
+            'spread_history': self.spread_history  # Add spread history to results
         }
