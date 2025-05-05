@@ -59,16 +59,19 @@ class StoikovStrategy(BaseStrategy):
         bid_price = round((bid_price) / ticksize) * ticksize
 
         # quote only one order at a time
-        if bid_price < S - min_spread:
+        # now we have a tension between theory and pratcice. q > 0 means we are long, so we should sell
+        # but what happens if reservation price is so low that we cant place the sell order ?
+        # same for q<0.
+        if bid_price < S - S*min_spread:
             buy_levels = [OrderLevel(price=bid_price, size=buy_size)]
-        else:
-            buy_levels = []
-
-        if ask_price > S + min_spread:
+        else: #lets enforce the order anyway at minimal spread
+            buy_levels = [OrderLevel(price=S - S*min_spread, size=buy_size)]
+        buy = buy_levels[0].price
+        if ask_price > S + S*min_spread:
             sell_levels = [OrderLevel(price=ask_price, size=sell_size)]
         else:
-            sell_levels = []
-
+            sell_levels = [OrderLevel(price= S + S*min_spread, size=sell_size)]
+        sell = sell_levels[0].price
         # Log detailed Stoikov formula components
         message = (
             f"Components| \n"
@@ -76,7 +79,8 @@ class StoikovStrategy(BaseStrategy):
             f"gamma (res price): {gamma:.4f}, gamma*vol {gamma*sigma**2}\n"
             f"S: {S:.2f}, reservation_price: {reservation_price:.2f},\n"
             f"gamma (spread): {gamma_spread:.4f}, gamma*vol {gamma_spread*sigma**2}\n"
-            f"optimal_spread: {optimal_spread:.8f}, min_spread: {min_spread:.8f}"
+            f"optimal_spread: {optimal_spread:.8f}, min_spread: {min_spread:.8f}\n"
+            f"final spread: {spread:.8f}, buy: {buy:.8f}, sell: {sell:.8f}\n"
         )
         self.log_strategy_debug("Stoikov", message)
         return StrategyOutput(

@@ -139,8 +139,8 @@ if __name__ == '__main__':
     }
     # Stoikov btc parameters
     btc_stoikov_params = {
-        'risk_aversion': 0.1, # gamma
-        'gamma_spread': 1, # k
+        'risk_aversion': 0.01, # gamma res price
+        'gamma_spread': 0.01, # gamma spread
         'window_vol': 7, # to compute volatility
     }
     # Stoikov eth parameters
@@ -188,4 +188,4 @@ if __name__ == '__main__':
     risk_strategy = BasicRiskStrategy(risk_params)
 
     # Run simulation
-    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=2)
+    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=0)
