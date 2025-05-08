@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 from market_maker import MarketMakerSimulation
 from trading_strategies.stoikov_strategy import StoikovStrategy
 from trading_strategies.Mexico_strategy import MexicoStrategy

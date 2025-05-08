@@ -1,10 +1,8 @@
-from typing import Dict, List, Tuple, Union, Any
+from typing import Dict, List, Any
 import constants
-from position import Position
-from orders import LimitOrder, MarketOrder, OrderSide, OrderStatus, OrderType
+from orders import LimitOrder
 from logger import MarketMakingLogger
-from trading_strategies.base_strategy import BaseStrategy, OrderLevel, StrategyInput
-from constants import DEFAULT_PARAMS
+from trading_strategies.base_strategy import BaseStrategy, StrategyInput
 from risk_management_strategies.base_risk_strategy import BaseRiskStrategy, RiskMetrics
 from order_manager import OrderManager
 
@@ -42,7 +40,6 @@ class MarketMakerSimulation:
         self.taker_fee = taker_fee
         self.min_start = min_start
         self.risk_strategy = risk_strategy
-        self.minimal_spread = DEFAULT_PARAMS['minimal_spread'] #or : to be moved to stratgy params
 
         # Initialize order manager and positions
         self.order_manager = OrderManager(self.logger, maker_fee, taker_fee)
@@ -331,7 +328,7 @@ class MarketMakerSimulation:
             current_inventory=current_quantity,
             current_upnl=upnl/self.per_symbol_margin, #normalized ; can be useful to decide TP/SL, etc
             max_inventory=max_inventory,
-            minimal_spread=self.minimal_spread,
+            minimal_spread=strategy.parameters.minimal_spread,
             agressivity=aggressivity,
             indicators=current_indicators,
             ohlc_history=local_past_ohlc[symbol] if local_past_ohlc else None

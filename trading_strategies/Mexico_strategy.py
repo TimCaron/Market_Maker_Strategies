@@ -1,32 +1,6 @@
-from typing import Dict, List, Optional
-from dataclasses import dataclass
-from .base_strategy import BaseStrategy, StrategyParameters, StrategyOutput, OrderLevel, StrategyInput
-import numpy as np
-from constants import DEFAULT_PARAMS
+from .base_strategy import BaseStrategy, StrategyOutput, OrderLevel, StrategyInput
+from .default_parameters import MexicoParameters
 
-@dataclass
-class MexicoParameters(StrategyParameters):
-
-    # dimensionless parameters for reservation price computation
-    q_factor: float  # current inventory size may impact reservation price
-    upnl_factor : float# current upnl may impact reservation price
-    mean_revert_factor: float  # deviation of current price from a moving average may impact reservation price
-    momentum_factor : float # recent momentum  may impact reservation price 
-    
-    #spread parameters
-    constant_spread: float # just have constant spacing as a basis
-    vol_factor: float # volatility may impact the the spread
-    spread_mom_factor: float # large recent momentum may impact spread
-    
-    #other parameters
-    max_orders: int
-    use_adaptive_sizes: bool  # Whether to use adaptive order sizes based on remaining inventory
-
-    # window parameters for indicators
-    window_vol : int
-    window_sma : int
-    window_mom : int
-    window_high_low : int
 
 class MexicoStrategy(BaseStrategy):
     """Implementation of very general multi-parameter market making strategy"""

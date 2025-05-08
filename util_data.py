@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from typing import Dict, List
 from indicators import IndicatorManager, IndicatorConfig
-import numpy as np
 from trading_strategies.base_strategy import BaseStrategy
 from constants import DEFAULT_PARAMS
 
@@ -32,7 +31,8 @@ def load_symbol_data(data_dir: str, period: str, symbols: List[str], revert = Fa
         # Load OHLC data
         df = pd.read_csv(data_file)
         #select only the first x rows
-        df = df.iloc[:DEFAULT_PARAMS['data_size']]
+        if DEFAULT_PARAMS['data_size'] != -1:
+            df = df.iloc[:DEFAULT_PARAMS['data_size']]
         df = df[['Unix', 'Open', 'High', 'Low', 'Close']]
         df.columns = df.columns.str.lower()
         

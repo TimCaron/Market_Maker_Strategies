@@ -1,17 +1,10 @@
-from typing import Dict, List, Optional
-from dataclasses import dataclass
-from .base_strategy import BaseStrategy, StrategyParameters, StrategyOutput, OrderLevel, StrategyInput
-import numpy as np
+from .base_strategy import BaseStrategy, StrategyOutput, OrderLevel, StrategyInput
+from .default_parameters import StoikovParameters
 
-@dataclass
-class StoikovParameters(StrategyParameters):
-    risk_aversion: float  # gamma
-    gamma_spread: float   # k
-    window_vol: int
 
-    
 class StoikovStrategy(BaseStrategy):
-    # My understanding of the no time limit Stoikov strategy
+    """My understanding of the no time limit Stoikov strategy"""
+    
     def __init__(self, parameters: StoikovParameters):
         super().__init__(parameters)
         self.params = parameters  # critical to compute indicators
@@ -78,7 +71,7 @@ class StoikovStrategy(BaseStrategy):
             f"q: {q:.2f},  sigma: {sigma:.4f}\n"
             f"gamma (res price): {gamma:.4f}, gamma*vol {gamma*sigma**2}\n"
             f"S: {S:.2f}, reservation_price: {reservation_price:.2f},\n"
-            f"gamma (spread): {gamma_spread:.4f}, gamma*vol {gamma_spread*sigma**2}\n"
+            f"gamma_spread: {gamma_spread:.4f}, gamma*vol {gamma_spread*sigma**2}\n"
             f"optimal_spread: {optimal_spread:.8f}, min_spread: {min_spread:.8f}\n"
             f"final spread: {spread:.8f}, buy: {buy:.8f}, sell: {sell:.8f}\n"
         )

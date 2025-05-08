@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 from orders import LimitOrder, MarketOrder, OrderSide, OrderStatus, OrderType
 from logger import MarketMakingLogger
-from trading_strategies.base_strategy import OrderLevel, StrategyOutput
+from trading_strategies.base_strategy import StrategyOutput
 from risk_management_strategies.base_risk_strategy import RiskMetrics
 from position import Position
 import random

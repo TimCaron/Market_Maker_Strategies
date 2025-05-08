@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, Tuple, Callable
+from typing import Dict, List, Callable
 from dataclasses import dataclass
 
 @dataclass
