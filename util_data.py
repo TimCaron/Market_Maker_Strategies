@@ -152,7 +152,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
                 symbol_indicators[idx][indicator_name] = float(val)
         
         all_indicators[symbol] = symbol_indicators
-        print(all_indicators[symbol])
+
     # format is like :
     # {
     # 'BTCUSDT': {

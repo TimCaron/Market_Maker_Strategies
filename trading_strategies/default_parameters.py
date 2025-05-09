@@ -8,13 +8,13 @@ class DefaultParameters:
     """
     # max_orders : Number of quote orders per symbol
     # Meaning ou will quote eg bid at price - spread/2 - i*spread, i=0,1,2,..., max_orders - 1
-    max_orders: int = 10 
+    max_orders: int = 1
 
     # Minimum spread between orders: if set to : 2*DEFAULT_PARAMS['maker_fee'], 
     # the spread you win exactly compensate the fees ; lets take 4
     minimal_spread: float = 4*DEFAULT_PARAMS['maker_fee'] 
 
-    use_adaptive_sizes: bool = True #if False, all orders will have the same size given by max_inventory / max_orders
+    use_adaptive_sizes: bool = False #if False, all orders will have the same size given by max_inventory / max_orders
     # else it will be max_remaining_inventory / max_orders (per side)
     
     # Window parameters for indicators: volatility, sma, momentum, high-low sma, etc.

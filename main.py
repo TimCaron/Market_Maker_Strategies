@@ -5,13 +5,13 @@ from trading_strategies.stoikov_strategy import StoikovStrategy
 from trading_strategies.Mexico_strategy import MexicoStrategy
 from constants import DEFAULT_PARAMS
 from trading_strategies.strategy_factory import StrategyFactory
-from risk_management_strategies.base_risk_strategy import RiskStrategyParameters, BaseRiskStrategy
+from risk_management_strategies.base_risk_strategy import BaseRiskStrategy
 from risk_management_strategies.basic_risk_strategy import BasicRiskStrategy
+from risk_management_strategies.default_parameters import DefaultRiskParameters
 from simulation.executor import execute_simulation
 from simulation.results import process_results
 from trading_strategies.default_parameters import StoikovParameters, MexicoParameters, TokyoParameters
 from trading_strategies.Tokyo_strategy import TokyoStrategy, TokyoParameters
-
 
 def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy, mode: str, symbols: List[str], verbosity = 2):
     """Main entry point for market making simulation
@@ -36,21 +36,25 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
     
     if mode == 'parameter_search':
         assert len(symbols) == 1, "Parameter search can only be executed for one symbol at a time"
-        symbol = symbols[0]
         strategy_type = list(trading_strategies[symbol].keys())[0]
-        print(f"Running parameter search for {strategy_type} strategy on {symbol} with period {period}")
+        print(f"Running parameter search for {strategy_type} strategy on {symbols[0]} with period {period}")
         
         # Load and prepare data
         symbol_data = load_symbol_data(data_dir, period, symbols, revert=True)
         price_data = prepare_price_data(symbol_data)
         
         # Calculate initial indicators
-        indicators = calculate_all_indicators(symbol_data)
-        
+        # we need a general strategy to calculate indicators, lets take the most general one
+        mexico_params = MexicoParameters()
+        trading_strategies = {symbols[0]: {'Mexico': mexico_params}}
+        strategy_dict = trading_strategies
+        indicators = calculate_all_indicators(symbol_data, strategy_dict)
+
         # Run parameter search
         from parameter_search import run_parameter_search
         best_strategy_params, best_risk_params, results_df = run_parameter_search(
             price_data=price_data,
+            symbol_data=symbol_data,
             symbol=symbol,
             strategy_type=strategy_type,
             indicators=indicators,
@@ -59,11 +63,11 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
         
         print("\nBest Strategy Parameters:")
         for param, value in best_strategy_params.items():
-            print(f"{param}: {value}")
+            print(f"{param}: {value:.6f}" if isinstance(value, float) else f"{param}: {value}")
             
         print("\nBest Risk Parameters:")
         for param, value in best_risk_params.__dict__.items():
-            print(f"{param}: {value}")
+            print(f"{param}: {value:.6f}" if isinstance(value, float) else f"{param}: {value}")
             
         print("\nTop 5 Parameter Combinations by Score:")
         print(results_df.sort_values('score', ascending=False).head())
@@ -71,6 +75,8 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
         # Update strategies with best parameters
         trading_strategies[symbol][strategy_type] = best_strategy_params
         risk_strategy = BasicRiskStrategy(best_risk_params)
+        
+        return trading_strategies, risk_strategy
 
     if mode == 'single_run':
         print(f"Running single run for symbols {symbols} with period {period}")
@@ -86,7 +92,7 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
         # Create strategy instances for each symbol
         for symbol in symbols:
             symbol_config = trading_strategies[symbol]
-                   
+
             strategy_name = list(symbol_config.keys())[0]
             strategy_params = symbol_config[strategy_name]
             
@@ -127,18 +133,19 @@ def main(period: str, trading_strategies: Dict, risk_strategy: BaseRiskStrategy,
             indicators=indicators
         )
         
-        # Process and display results
-        process_results(results, symbols, trading_strategies, risk_strategy.parameters.__dict__)
+        # Process and display results with both text and plots enabled
+        process_results(results, symbols, trading_strategies, risk_strategy.parameters.__dict__, display_text=True, display_img=True)
 
-    else:
-        raise ValueError(f"Invalid mode: {mode}. Must be 'single_run'")
+    elif mode != 'single_run':
+        raise ValueError(f"Invalid mode: {mode}. Must be 'parameter_search' or 'single_run'")
+    
+    return trading_strategies, risk_strategy
 
-
+    
 if __name__ == '__main__':
-    # Configuration
+    # Example configuration
     period = '1d'
-    mode = 'single_run'
-
+    mode = 'parameter_search'
     # Example usage :
     # This will use default parameters from DefaultParameters class
     btc_stoikov_params = StoikovParameters()
@@ -153,14 +160,14 @@ if __name__ == '__main__':
     eth_mexico_params = MexicoParameters()
     btc_tokyo_params = TokyoParameters()
     eth_tokyo_params = TokyoParameters()
-    btc_stoikov_params = StoikovParameters()
-    eth_stoikov_params = StoikovParameters()
 
     # Configure symbols and strategies ; example call
-    mono_symbol = False
-    strat = 'Stoikov'
-
-    if strat == 'Stoikov':
+    mono_symbol = True
+    if mode == 'parameter_search':
+        assert mono_symbol == True, "Parameter search can only be executed for one symbol at a time"
+    
+    strategy = 'Tokyo'
+    if strategy == 'Stoikov':
         if mono_symbol:
             symbols = ['BTCUSDT']
             trading_strategies = {'BTCUSDT': {'Stoikov': btc_stoikov_params}}
@@ -170,13 +177,13 @@ if __name__ == '__main__':
                 'BTCUSDT': {'Stoikov': btc_stoikov_params},
                 'ETHUSDT': {'Stoikov': eth_stoikov_params}      
             }
-    elif strat == 'Mixed':
+    elif strategy == 'Mixed':
         symbols = ['BTCUSDT', 'ETHUSDT']
         trading_strategies = {
             'BTCUSDT': {'Stoikov': btc_mexico_params},
             'ETHUSDT': {'Tokyo': eth_tokyo_params}
         }
-    elif strat == 'Mexico':
+    elif strategy == 'Mexico':
         if mono_symbol:
             symbols = ['BTCUSDT']
             trading_strategies = {'BTCUSDT': {'Mexico': btc_params}}
@@ -186,18 +193,37 @@ if __name__ == '__main__':
                 'BTCUSDT': {'Mexico': btc_params},
                 'ETHUSDT': {'Mexico': eth_params}
             }
-
+    elif strategy == 'Tokyo':
+        if mono_symbol:
+            symbols = ['BTCUSDT']
+            trading_strategies = {'BTCUSDT': {'Tokyo': btc_tokyo_params}}
+        else:
+            symbols = ['BTCUSDT', 'ETHUSDT']
+            trading_strategies = {
+                'BTCUSDT': {'Tokyo': btc_tokyo_params},
+                'ETHUSDT': {'Tokyo': eth_tokyo_params}
+            }
+    else:
+        raise ValueError(f"Invalid strategy: {strat}. Must be 'Stoikov', 'Mexico' or 'Tokyo'")
+        
     # Initialize risk management strategy
-    risk_params = RiskStrategyParameters(
-        max_leverage=DEFAULT_PARAMS['max_leverage'],
-        min_order_value_usd=DEFAULT_PARAMS['min_order_value_usd'],
-        aggressivity=DEFAULT_PARAMS['aggressivity'],
-        emergency_exit_leverage=DEFAULT_PARAMS['emergency_exit_leverage'],
-        early_stopping_margin=DEFAULT_PARAMS['early_stopping_margin'],
-        cancel_orders_every_timestamp=True,  # Cancel orders at each new timestamp
-        max_order_age=None  # No maximum age limit
-    )
+    risk_params = DefaultRiskParameters()
     risk_strategy = BasicRiskStrategy(risk_params)
 
     # Run simulation
-    main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=2)
+    trading_strategies, risk_strategy = main(period, trading_strategies, risk_strategy, mode, symbols, verbosity=0)
+    
+    if mode == 'parameter_search':
+        # Print optimized parameters
+        print("\nFinal Trading Strategy Parameters:")
+        for symbol, strategy_config in trading_strategies.items():
+            strategy_type = list(strategy_config.keys())[0]
+            params = strategy_config[strategy_type]
+            print(f"\n{symbol} - {strategy_type} Strategy:")
+            for param, value in params.items():
+                print(f"{param}: {value:.6f}" if isinstance(value, float) else f"{param}: {value}")
+        
+        print("\nFinal Risk Parameters:")
+        for param, value in risk_strategy.parameters.__dict__.items():
+            print(f"{param}: {value:.6f}" if isinstance(value, float) else f"{param}: {value}")
+

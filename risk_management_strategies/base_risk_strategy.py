@@ -1,18 +1,8 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
-from orders import LimitOrder, MarketOrder, OrderSide
+from typing import Dict
+from orders import LimitOrder
 from logger import MarketMakingLogger
-
-
-@dataclass
-class RiskStrategyParameters:
-    max_leverage: float = 1.0
-    min_order_value_usd: float = 10.0  # Minimum order value in USD ; prevents small orders and numerical errors: float = 10.0
-    aggressivity: float = 0.1
-    emergency_exit_leverage: float = 2.0
-    early_stopping_margin: float = 0.1
-    cancel_orders_every_timestamp: bool = True  # Default to canceling orders every timestamp
-    max_order_age: Optional[int] = None  # Maximum age of orders in timestamps before cancellation
+from .default_parameters import DefaultRiskParameters
 
 @dataclass
 class RiskMetrics: # is on a per symbol basis
@@ -23,7 +13,7 @@ class RiskMetrics: # is on a per symbol basis
 class BaseRiskStrategy:
     """Base class for risk management strategies"""
     
-    def __init__(self, parameters: RiskStrategyParameters = RiskStrategyParameters()):
+    def __init__(self, parameters: DefaultRiskParameters):
         self.parameters = parameters
         self.logger = MarketMakingLogger(verbosity=2)  # Default to DEBUG level
     

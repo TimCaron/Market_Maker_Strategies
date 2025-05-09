@@ -37,7 +37,7 @@ class MexicoStrategy(BaseStrategy):
         # Get indicators for the current timestamp
         indicators = strategy_input.indicators
         q_factor = self.params.q_factor
-        upnl_factor = self.params.upnl_factor
+        upnl_factor = self.params.upnl_factor #is already in percent
         mean_revert_factor = self.params.mean_revert_factor
         momentum_factor = self.params.momentum_factor
         
@@ -48,7 +48,9 @@ class MexicoStrategy(BaseStrategy):
         volatility = indicators.get('volatility', 0.0)
 
         # compute reservation price
-        delta = q_factor*current_inventory + upnl_factor*current_upnl + mean_revert_factor*sma_deviation + momentum_factor*momentum
+        # inventory factor should in proprtion of current balance, so
+
+        delta = q_factor*current_inventory/max_inventory + upnl_factor*current_upnl + mean_revert_factor*sma_deviation + momentum_factor*momentum
         reservation_price = current_price*(1 + delta)
 
         # compute spread 

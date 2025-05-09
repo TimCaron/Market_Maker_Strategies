@@ -77,7 +77,7 @@ def execute_simulation(
 
     # Initialize simulation
     min_start = get_starting_timestamp(strategy_dict)
-    print('min_start', min_start)   
+
     simulation = MarketMakerSimulation(
         strategies=strategy_dict,
         initial_cash=DEFAULT_PARAMS['initial_cash'],

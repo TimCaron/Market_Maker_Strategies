@@ -4,8 +4,6 @@ from typing import Dict, List, Union, Optional
 from position import Position
 from constants import DEFAULT_PARAMS
 
-# old class, to be updated later
-
 def plot_strategy_metrics(
     prices: Dict[str, List[float]],
     wallet_balance_history: List[float],
@@ -78,6 +76,7 @@ def plot_strategy_metrics(
     
     # Plot 4: Spread History and Price Differences
     ax4 = plt.subplot(2, 2, 4)
+    data_length = len(next(iter(price_history.values())))
     for symbol in realized_pnl_history.keys():
         # Plot spread history as percentage of current price
         price_arr = np.array(price_history[symbol])
@@ -85,9 +84,21 @@ def plot_strategy_metrics(
         rel_spread = 100 * spread_arr / price_arr  # Spread in percent
         ax4.plot(rel_spread, label=f'{symbol} Spread %', color='blue', alpha=0.7)
         
-        # Add minimal spread reference line from DEFAULT_PARAMS
-        minimal_spread = 100 * DEFAULT_PARAMS['minimal_spread']
-        ax4.axhline(y=minimal_spread, color='gray', linestyle='--', alpha=0.3, label=f'{symbol} Min Spread %')
+        # Extract minimal spread from strategy parameters
+        minimal_spreads = []
+        for symbol_params in params.values():
+            for strategy_params in symbol_params.values():
+                # Handle both dict and object parameter formats
+                if isinstance(strategy_params, dict):
+                    if 'minimal_spread' in strategy_params:
+                        minimal_spreads.append(strategy_params['minimal_spread'])
+                else:
+                    if hasattr(strategy_params, 'minimal_spread'):
+                        minimal_spreads.append(strategy_params.minimal_spread)
+        
+        # Plot minimal spread lines if available
+        for minimal_spread in minimal_spreads:
+            ax4.axhline(y=100 * minimal_spread, color='gray', linestyle='--', alpha=0.3, label=f'{symbol} Min Spread %')
         
         # Calculate and plot relative price difference in percent
         if price_history[symbol][0] != 0:
@@ -97,6 +108,7 @@ def plot_strategy_metrics(
         else:
             print(f"Warning: Initial price for {symbol} is zero, skipping relative difference")
     
+    ax4.set_xlim(0, data_length)
     ax4.set_title('Spread and Reservation Price Difference (%)')
     ax4.legend()
     ax4.grid(True)

@@ -419,6 +419,7 @@ class MarketMakerSimulation:
             
             # And process each symbol : call strategy to get new orders for each symbol
             all_new_orders = []
+
             for symbol, strategy in self.strategies.items():
                 new_orders = self._process_one_symbol(t, symbol, prices, highs, lows, closes, indicators, strategy)
                 all_new_orders.extend(new_orders)

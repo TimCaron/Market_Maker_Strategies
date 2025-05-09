@@ -35,17 +35,21 @@ class StrategyFactory:
             symbol = Symbol(symbol_str)
             
             # Create strategy with appropriate parameter class
-            if strategy_class == StoikovStrategy:
-                params = base_params
-                strategy = strategy_class(params)
-            elif strategy_class == MexicoStrategy:
-                params = base_params
-                strategy = strategy_class(params)
-            elif strategy_class == TokyoStrategy:
-                params = base_params
-                strategy = strategy_class(params)
+            if isinstance(base_params, dict):
+                # Convert dict to appropriate parameter class
+                if strategy_class == StoikovStrategy:
+                    params = StoikovParameters(**base_params)
+                elif strategy_class == MexicoStrategy:
+                    params = MexicoParameters(**base_params)
+                elif strategy_class == TokyoStrategy:
+                    params = TokyoParameters(**base_params)
+                else:
+                    raise NotImplementedError(f"Strategy class {strategy_class} not supported")
             else:
-                raise NotImplementedError(f"Strategy class {strategy_class} not supported")    
+                # Use provided parameter instance directly
+                params = base_params
+            
+            strategy = strategy_class(params)
             self.strategies[symbol] = strategy
             
         return self.strategies

@@ -4,12 +4,11 @@ from .default_parameters import TokyoParameters
 class TokyoStrategy(BaseStrategy):
     """One of the most simple possible market making strategy:
     1. Quote both sided with a symmetric constant spread
-    1.+ Unless you reach your max inventory, then you can only quote one side in order to reduce inventory
-    1 ++ : we still may quote n orders sell n order buy
-    2. Always take the same size for each order
-    2. Reservation price is the current price
-    3. No market exit : see RiskStrategy associated to the strategy
-    4 No indicator used
+    2. Unless you reach your max inventory, then you can only quote one side in order to reduce inventory
+    3  We still may quote n orders sell n order buy
+    4. Always take the same size for each order
+    5. Reservation price is the current price
+    6. No indicator used
     """
 
     def __init__(self, parameters: TokyoParameters):
@@ -54,7 +53,7 @@ class TokyoStrategy(BaseStrategy):
 
         # Generate orders
         level_spread = constant_spread * current_price
-        for i in range(0, max_orders ):
+        for i in range(0, int(max_orders)):
             buy_price = round((current_price - i*level_spread - level_spread/2) / ticksize) * ticksize
             sell_price = round((current_price + i*level_spread+level_spread/2) / ticksize) * ticksize
             if buy_size != 0:
