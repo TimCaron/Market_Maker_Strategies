@@ -79,12 +79,12 @@ def prepare_price_data(symbol_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     return combined_data
 
-def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: Dict[str, BaseStrategy] = None) -> Dict[str, Dict[int, Dict[str, float]]]:
+def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategy_instances: Dict) -> Dict[str, Dict[int, Dict[str, float]]]:
     """Calculate indicators for all symbols
     
     Args:
         symbol_data: Dictionary of symbol -> OHLC DataFrame
-        strategies: Dictionary mapping symbols to their strategy instances
+        strategy_instances: Dictionary mapping Symbol enum to strategy instances
         
     Returns:
         Nested dictionary: symbol -> timestamp -> indicator_name -> value
@@ -98,7 +98,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
     # Prepare OHLC data and configs for each symbol
     ohlc_dict = {}
     symbol_configs = {}
-    
+    print('ici', strategy_instances.items())
     for symbol, df in symbol_data.items():
         # Convert DataFrame to numpy array with OHLC columns
         ohlc_dict[symbol] = df[['open', 'high', 'low', 'close']].values
@@ -109,13 +109,18 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
         window_mom = default_window
         window_high_low = default_window
 
-        if symbol in strategies:
-            strategy = strategies[symbol]
-            if hasattr(strategy, 'params'):
-                window_vol = getattr(strategy.params, 'window_vol', default_window)
-                window_sma = getattr(strategy.params, 'window_sma', default_window)
-                window_mom = getattr(strategy.params, 'window_mom', default_window)
-                window_high_low = getattr(strategy.params, 'window_high_low', default_window)
+        # Find matching strategy instance for this symbol
+        strategy = None
+        for symbol_enum, strat in strategy_instances.items():
+            if symbol_enum.value == symbol:
+                strategy = strat
+                break
+
+        if strategy and hasattr(strategy, 'params'):
+            window_vol = getattr(strategy.params, 'window_vol', default_window)
+            window_sma = getattr(strategy.params, 'window_sma', default_window)
+            window_mom = getattr(strategy.params, 'window_mom', default_window)
+            window_high_low = getattr(strategy.params, 'window_high_low', default_window)
         
         # Create symbol-specific indicator configs
         symbol_configs[symbol] = [
@@ -131,11 +136,6 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategies: D
     for symbol, configs in symbol_configs.items():
         symbol_results = indicator_manager.calculate_indicators({symbol: ohlc_dict[symbol]}, configs)
         indicator_results.update(symbol_results)
-    # format is symbol -> indicator_name -> values
-    #for indic in indicator_results['BTCUSDT'].keys():
-    #    # print the firts 10 values
-    #    for i in range(10):
-    #        print(indic, indicator_results['BTCUSDT'][indic][i])
 
     # Convert numpy array results to required dictionary format
     for symbol in symbol_data.keys():

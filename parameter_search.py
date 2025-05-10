@@ -14,7 +14,7 @@ from simulation import execute_simulation
 from simulation.results import process_results
 from simulation.performance_metrics import calculate_sharpe_ratio, calculate_max_drawdown
 
-def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symbol: str, strategy_type: str) -> Dict:
+def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symbol: str, strategy_type: str, min_start:int) -> Dict:
     """Estimate initial parameters based on historical data analysis.
     
     Args:
@@ -27,6 +27,7 @@ def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symb
         Dictionary of estimated parameters
     """
     # Calculate average price, volatility and spreads
+    # fill nan with 0
     avg_price = price_data[f'{symbol}_close'].mean()
     avg_vol = np.mean([indicators[symbol][t]['volatility'] for t in indicators[symbol].keys()])
     avg_mom = np.mean([indicators[symbol][t]['momentum'] for t in indicators[symbol].keys()])
@@ -78,8 +79,9 @@ def run_parameter_search(
     price_data: pd.DataFrame,
     symbol_data: Dict[str, pd.DataFrame],
     symbol: str,
-    strategy_type: str,
+    strategy_name: str,
     indicators: Dict,
+    min_start: int,
     n_grid_points: int = 10
 ) -> Tuple[Dict, DefaultRiskParameters, pd.DataFrame]:
     """Run grid search for strategy and risk parameters.
@@ -87,7 +89,7 @@ def run_parameter_search(
     Args:
         price_data: DataFrame with OHLC data
         symbol: Trading symbol
-        strategy_type: 'Stoikov' or 'Mexico'
+        strategy_type: 'Stoikov' or 'Mexico' or 'Tokyo', ...
         indicators: Dictionary of technical indicators
         n_grid_points: Number of points per dimension in grid search
         
@@ -95,18 +97,18 @@ def run_parameter_search(
         Tuple of (best strategy parameters, best risk parameters, results DataFrame)
     """
     # Get initial parameter estimates
-    init_params = estimate_initial_parameters(price_data, indicators, symbol, strategy_type)
+    init_params = estimate_initial_parameters(price_data, indicators, symbol, strategy_name, min_start)
     # Create parameter grid
     param_grid = []
     param_names = []
     
-    if strategy_type == 'Stoikov':
+    if strategy_name == 'Stoikov':
         param_names = ['risk_aversion', 'gamma_spread']
         for param in param_names:
             base_val = init_params[param]
             param_grid.append(np.logspace(np.log10(base_val/10), np.log10(base_val*10), n_grid_points))
             
-    elif strategy_type == 'Tokyo':
+    elif strategy_name == 'Tokyo':
         param_names = ['minimal_spread', 'max_orders']
         for param in param_names:
             base_val = init_params[param]
@@ -119,7 +121,7 @@ def run_parameter_search(
             else:
                 param_grid.append(np.logspace(np.log10(base_val/5), np.log10(base_val*5), n_grid_points))
 
-    elif strategy_type == 'Mexico':
+    elif strategy_name == 'Mexico':
         param_names = ['q_factor', 'upnl_factor', 'mean_revert_factor', 'momentum_factor', 'vol_factor']
         for param in param_names:
             base_val = init_params[param]
@@ -146,7 +148,7 @@ def run_parameter_search(
             'Mexico': MexicoStrategy,
             'Stoikov': StoikovStrategy,
             'Tokyo': TokyoStrategy
-        }.get(strategy_type)
+        }.get(strategy_name)
         if not strategy_class:
             raise NotImplementedError(f"Not implemented strategy: {strategy_name}")
         
@@ -157,12 +159,8 @@ def run_parameter_search(
         )
       
         strategy_instances.update(symbol_strategies)
-        strategy_dict = {}
-        for symbol_str in [symbol]:
-            for symbol_enum, strategy in strategy_instances.items():
-                if symbol_enum.value == symbol_str:
-                    strategy_dict[symbol_str] = strategy
-                    break
+        # Use strategy_instances directly since it already has Symbol enum keys
+        strategy_dict = strategy_instances
         
         indicators = calculate_all_indicators(symbol_data, strategy_dict)
         
@@ -178,7 +176,7 @@ def run_parameter_search(
 
         # Process results using the process_results function
         # Convert strategy object to parameter dictionary for visualization
-        strategy_params_dict = {symbol: {strategy_type: strategy_params}}
+        strategy_params_dict = {symbol: {strategy_name: strategy_params}}
         process_results(results, [symbol], strategy_params_dict, risk_params.__dict__)
         
         # Calculate metrics for parameter search

@@ -21,18 +21,23 @@ class IndicatorCalculator:
         """Calculate rolling volatility using log returns of open prices"""
         open_prices = ohlc[:, 0]  # Use open prices
         if len(open_prices) < window + 1:  # Need extra point for log returns
-            return np.full(len(open_prices), np.nan)
+            return np.zeros(len(open_prices))  # Return zeros for insufficient data
             
         # Calculate log returns
-        log_returns = np.full(len(open_prices), np.nan)
-        log_returns[1:] = np.log(open_prices[1:] / open_prices[:-1])
+        log_returns = np.zeros(len(open_prices))  # Initialize with zeros
+        valid_prices = ~np.isnan(open_prices)
+        log_returns[1:] = np.where(
+            valid_prices[1:] & valid_prices[:-1],
+            np.log(open_prices[1:] / open_prices[:-1]),
+            0  # Use 0 for invalid price pairs
+        )
         
         # Calculate rolling standard deviation of log returns
-        volatility = np.full(len(log_returns), np.nan)
+        volatility = np.zeros(len(log_returns))  # Initialize with zeros
         for i in range(window, len(log_returns)):
             window_data = log_returns[i-window+1:i+1]
-            if np.sum(~np.isnan(window_data)) >= window // 2:  # Require at least half the window
-                volatility[i] = np.nanstd(window_data)
+            if np.sum(window_data != 0) >= window // 2:  # Require at least half non-zero values
+                volatility[i] = np.std(window_data)  # Use std since we've already handled NaNs
                 
         return volatility
 
@@ -40,23 +45,33 @@ class IndicatorCalculator:
     def calculate_hlma(ohlc: np.ndarray, window: int) -> np.ndarray:
         """Calculate High-Low Moving Average using previous timestamp's range normalized by current open"""
         if len(ohlc) < window + 1:  # Need extra point for shift
-            return np.full(len(ohlc), np.nan)
+            return np.zeros(len(ohlc))  # Return zeros for insufficient data
             
         high, low = ohlc[:, 1], ohlc[:, 2]
         open_prices = ohlc[:, 0]
         
-        # Shift high-low range back by 1 to prevent lookahead bias
-        hl_range = np.full(len(high), np.nan)  # Initialize with NaN
-        hl_range[1:] = (high[:-1] - low[:-1]) / open_prices[1:]
+        # Initialize with zeros
+        hl_range = np.zeros(len(high))
         
-        # Pre-allocate output array
-        hlma = np.full(len(hl_range), np.nan)
+        # Calculate range only for valid price triplets
+        valid_high = ~np.isnan(high[:-1])
+        valid_low = ~np.isnan(low[:-1])
+        valid_open = ~np.isnan(open_prices[1:])
+        valid_triplets = valid_high & valid_low & valid_open
         
-        # Calculate moving average only where we have enough data
+        # Calculate normalized range where all values are valid
+        hl_range[1:] = np.where(
+            valid_triplets,
+            (high[:-1] - low[:-1]) / np.maximum(np.abs(open_prices[1:]), 1e-6),
+            0  # Use 0 for invalid triplets
+        )
+        
+        # Calculate moving average
+        hlma = np.zeros(len(hl_range))
         for i in range(window, len(hl_range)):
             window_data = hl_range[i-window+1:i+1]
-            if np.sum(~np.isnan(window_data)) >= window // 2:  # Require at least half the window
-                hlma[i] = np.nanmean(window_data)
+            if np.sum(window_data != 0) >= window // 2:  # Require at least half non-zero values
+                hlma[i] = np.mean(window_data)  # Use mean since we've already handled NaNs
                 
         return hlma
 
@@ -64,23 +79,33 @@ class IndicatorCalculator:
     def calculate_hlsd(ohlc: np.ndarray, window: int) -> np.ndarray:
         """Calculate High-Low Standard Deviation using previous timestamp's range normalized by current open"""
         if len(ohlc) < window + 1:  # Need extra point for shift
-            return np.full(len(ohlc), np.nan)
+            return np.zeros(len(ohlc))  # Return zeros for insufficient data
             
         high, low = ohlc[:, 1], ohlc[:, 2]
         open_prices = ohlc[:, 0]
         
-        # Shift high-low range back by 1 to prevent lookahead bias
-        hl_range = np.full(len(high), np.nan)  # Initialize with NaN
-        hl_range[1:] = (high[:-1] - low[:-1]) / open_prices[1:]
+        # Initialize with zeros
+        hl_range = np.zeros(len(high))
         
-        # Pre-allocate output array
-        hlsd = np.full(len(hl_range), np.nan)
+        # Calculate range only for valid price triplets
+        valid_high = ~np.isnan(high[:-1])
+        valid_low = ~np.isnan(low[:-1])
+        valid_open = ~np.isnan(open_prices[1:])
+        valid_triplets = valid_high & valid_low & valid_open
         
-        # Calculate standard deviation only where we have enough data
+        # Calculate normalized range where all values are valid
+        hl_range[1:] = np.where(
+            valid_triplets,
+            (high[:-1] - low[:-1]) / np.maximum(np.abs(open_prices[1:]), 1e-6),
+            0  # Use 0 for invalid triplets
+        )
+        
+        # Calculate standard deviation
+        hlsd = np.zeros(len(hl_range))
         for i in range(window, len(hl_range)):
             window_data = hl_range[i-window+1:i+1]
-            if np.sum(~np.isnan(window_data)) >= window // 2:  # Require at least half the window
-                hlsd[i] = np.nanstd(window_data)
+            if np.sum(window_data != 0) >= window // 2:  # Require at least half non-zero values
+                hlsd[i] = np.std(window_data)  # Use std since we've already handled NaNs
                 
         return hlsd
     
@@ -89,13 +114,31 @@ class IndicatorCalculator:
         """Calculate percentage deviation from SMA using open price"""
         open_prices = ohlc[:, 0]  # Use open prices
         if len(open_prices) < window:
-            return np.full(len(open_prices), np.nan)
+            return np.zeros(len(open_prices))  # Return zeros for insufficient data
             
-        sma = np.full(len(open_prices), np.nan)
-        for i in range(window-1, len(open_prices)):
-            sma[i] = np.mean(open_prices[i-window+1:i+1])
-        deviation = np.full(len(open_prices), np.nan)
-        deviation[window-1:] = (open_prices[window-1:] - sma[window-1:]) / sma[window-1:]
+        # Fill NaN values with the last valid price
+        filled_prices = open_prices.copy()
+        last_valid = np.nan
+        for i in range(len(filled_prices)):
+            if np.isnan(filled_prices[i]):
+                filled_prices[i] = last_valid if not np.isnan(last_valid) else filled_prices[i]
+            else:
+                last_valid = filled_prices[i]
+        
+        # Calculate SMA using filled prices
+        sma = np.zeros(len(filled_prices))
+        for i in range(window-1, len(filled_prices)):
+            window_data = filled_prices[i-window+1:i+1]
+            sma[i] = np.mean(window_data)
+        
+        # Calculate deviation using filled prices
+        deviation = np.zeros(len(filled_prices))
+        valid_sma = sma != 0
+        deviation[window-1:] = np.where(
+            valid_sma[window-1:],
+            (filled_prices[window-1:] - sma[window-1:]) / sma[window-1:],
+            0  # Use 0 when SMA is zero
+        )
         return deviation
     
     @staticmethod
@@ -103,10 +146,22 @@ class IndicatorCalculator:
         """Calculate momentum indicator using open prices"""
         open_prices = ohlc[:, 0]  # Use open prices
         if len(open_prices) < window:
-            return np.full(len(open_prices), np.nan)
+            return np.zeros(len(open_prices))  # Return zeros for insufficient data
             
-        momentum = np.full(len(open_prices), np.nan)
-        momentum[window:] = (open_prices[window:] - open_prices[:-window]) / open_prices[:-window]
+        # Initialize with zeros
+        momentum = np.zeros(len(open_prices))
+        
+        # Calculate momentum only for valid price pairs
+        valid_current = ~np.isnan(open_prices[window:])
+        valid_past = ~np.isnan(open_prices[:-window])
+        valid_pairs = valid_current & valid_past
+        
+        # Calculate momentum where both prices are valid
+        momentum[window:] = np.where(
+            valid_pairs,
+            (open_prices[window:] - open_prices[:-window]) / np.maximum(np.abs(open_prices[:-window]), 1e-6),
+            0  # Use 0 for invalid pairs
+        )
         return momentum
 
 class IndicatorManager:
