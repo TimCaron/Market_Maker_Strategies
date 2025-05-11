@@ -98,7 +98,7 @@ def calculate_all_indicators(symbol_data: Dict[str, pd.DataFrame], strategy_inst
     # Prepare OHLC data and configs for each symbol
     ohlc_dict = {}
     symbol_configs = {}
-    print('ici', strategy_instances.items())
+
     for symbol, df in symbol_data.items():
         # Convert DataFrame to numpy array with OHLC columns
         ohlc_dict[symbol] = df[['open', 'high', 'low', 'close']].values

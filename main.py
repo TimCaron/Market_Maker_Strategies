@@ -196,7 +196,7 @@ if __name__ == '__main__':
     # Example configuration
     period = '1d'
     mode = 'parameter_search' # la {'BTCUSDT': {'Mexico': MexicoParameters(max_orders=1, minimal_spread=0.0008, use_adaptive_sizes=False, window_vol=7, window_sma=7, window_mom=7, window_high_low=3, q_factor=0.1, upnl_factor=0.05, mean_revert_factor=0.2, momentum_factor=0.1, constant_spread=0.005, vol_factor=0.1, spread_mom_factor=0.05)}}
-    #mode = 'single_run'
+    mode = 'single_run'
     # Example usage :
     # This will use default parameters from DefaultParameters class
     btc_stoikov_params = StoikovParameters()
@@ -206,14 +206,23 @@ if __name__ == '__main__':
     # To see default parameters:
     # print(btc_stoikov_params.__dict__)
     # To change them directly, go to trading_strategies/default_parameters.py and edit the class
-    
+    #q_factor: 0.100000
+    #upnl_factor: -0.100000
+    #mean_revert_factor: -0.279895
+    #momentum_factor: 0.281831
+    #vol_factor: 0.677907
+
     btc_mexico_params = MexicoParameters()
+    best_params = {'q_factor':0.01 , 'upnl_factor': 0.1, 'mean_revert_factor':  0.5597, 'momentum_factor': -0.1409, 'vol_factor':0.677907}
+    for k,v in best_params.items():
+        setattr(btc_mexico_params, k, v)
+    # most likely very much overfitted
     eth_mexico_params = MexicoParameters()
     btc_tokyo_params = TokyoParameters()
     eth_tokyo_params = TokyoParameters()
 
     # Configure symbols and strategies ; example call
-    mono_symbol = True
+    mono_symbol = 1
     if mode == 'parameter_search':
         assert mono_symbol == True, "Parameter search can only be executed for one symbol at a time"
     
@@ -255,7 +264,7 @@ if __name__ == '__main__':
                 'ETHUSDT': {'Tokyo': eth_tokyo_params}
             }
     else:
-        raise ValueError(f"Invalid strategy: {strat}. Must be 'Stoikov', 'Mexico' or 'Tokyo'")
+        raise ValueError(f"Invalid strategy: {strategy}. Must be 'Stoikov', 'Mexico' or 'Tokyo'")
         
     # Initialize risk management strategy
     risk_params = DefaultRiskParameters()

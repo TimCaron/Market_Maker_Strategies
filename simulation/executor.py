@@ -20,7 +20,7 @@ def get_starting_timestamp(strategy_dict: Dict) -> int:
         int: Minimum starting timestamp
     """
     # later todo : have a constant list of indicators and associated window_len dictionnary
-    print('check', strategy_dict)
+
     min_start = 0
     for _, strategy in strategy_dict.items():
         strategy_params = strategy.parameters

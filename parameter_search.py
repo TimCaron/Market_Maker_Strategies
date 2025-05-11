@@ -30,8 +30,8 @@ def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symb
     # fill nan with 0
     avg_price = price_data[f'{symbol}_close'].mean()
     avg_vol = np.mean([indicators[symbol][t]['volatility'] for t in indicators[symbol].keys()])
-    avg_mom = np.mean([indicators[symbol][t]['momentum'] for t in indicators[symbol].keys()])
-    avg_sma_dev = np.mean([indicators[symbol][t]['sma_deviation'] for t in indicators[symbol].keys()])
+    avg_mom = np.mean(np.abs([indicators[symbol][t]['momentum'] for t in indicators[symbol].keys()]))
+    avg_sma_dev = np.mean(np.abs([indicators[symbol][t]['sma_deviation'] for t in indicators[symbol].keys()]))
     
     # Calculate mean relative spread from high/low prices
     high_spread = (price_data[f'{symbol}_high'] - price_data[f'{symbol}_close']) / price_data[f'{symbol}_close']
@@ -39,10 +39,10 @@ def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symb
     avg_spread = (high_spread.mean() + low_spread.mean()) / 2
     
     # tailor factors like alpha*vol such that alpha*mean(vol) = 0.1
-    # Estimate Mexico parameters to achieve ~0.1 impact for each component #todo
-    mean_revert_factor = 0.1 / (abs(avg_sma_dev) + 1e-6)
-    momentum_factor = 0.1 / (abs(avg_mom) + 1e-6)
-    vol_factor = 0.1 / (avg_vol + 1e-6)
+    # Estimate Mexico parameters to achieve ~2% impact for each component of reservation price
+    mean_revert_factor = 0.02 / (avg_sma_dev + 1e-6)
+    momentum_factor = 0.02 / (avg_mom + 1e-6)
+    vol_factor = 0.02 / (avg_vol + 1e-6)
 
     # in stoikov todo
     risk_aversion = 0.001 * avg_price / (avg_vol + 1e-6)
@@ -65,7 +65,7 @@ def estimate_initial_parameters(price_data: pd.DataFrame, indicators: Dict, symb
         }
     elif strategy_type == 'Mexico':
         return {
-            'q_factor': 0.1,
+            'q_factor': 0.01,
             'upnl_factor': 0.1,
             'mean_revert_factor': mean_revert_factor,
             'momentum_factor': momentum_factor,
@@ -98,10 +98,12 @@ def run_parameter_search(
     """
     # Get initial parameter estimates
     init_params = estimate_initial_parameters(price_data, indicators, symbol, strategy_name, min_start)
+    #init_params.update({'upnl_factor': 0, 'mean_revert_factor': 0, 'momentum_factor': 0, 'vol_factor': 0})
+    #print('initial parameters: ', init_params)
+
     # Create parameter grid
     param_grid = []
     param_names = []
-    
     if strategy_name == 'Stoikov':
         param_names = ['risk_aversion', 'gamma_spread']
         for param in param_names:
@@ -122,11 +124,13 @@ def run_parameter_search(
                 param_grid.append(np.logspace(np.log10(base_val/5), np.log10(base_val*5), n_grid_points))
 
     elif strategy_name == 'Mexico':
+        span = [-1, -0.5, 0, 0.5, 1]
         param_names = ['q_factor', 'upnl_factor', 'mean_revert_factor', 'momentum_factor', 'vol_factor']
         for param in param_names:
             base_val = init_params[param]
-            param_grid.append(np.logspace(np.log10(base_val/10), np.log10(base_val*10), n_grid_points))
-    
+            param_grid.append([base_val*s for s in span])
+
+
     # Risk parameter grid -> no grid just set default risk:
     risk_params = DefaultRiskParameters()
     risk_strategy = BasicRiskStrategy(risk_params)
@@ -135,7 +139,9 @@ def run_parameter_search(
     all_results = []  # List to store simulation results for each parameter combination
     factory = StrategyFactory()
     # Run grid search
-    for params in np.array(np.meshgrid(*param_grid)).T.reshape(-1, len(param_grid)):
+    grid = np.array(np.meshgrid(*param_grid)).T.reshape(-1, len(param_grid))
+    print('grid shape: ', grid.shape)
+    for params in grid:
         print('running simulation on parameters: ', params)
         strategy_instances = {}
 
