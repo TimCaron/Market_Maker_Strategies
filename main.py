@@ -218,11 +218,13 @@ if __name__ == '__main__':
         setattr(btc_mexico_params, k, v)
     # most likely very much overfitted
     eth_mexico_params = MexicoParameters()
+    for k,v in best_params.items():
+        setattr(eth_mexico_params, k, v)
     btc_tokyo_params = TokyoParameters()
     eth_tokyo_params = TokyoParameters()
 
     # Configure symbols and strategies ; example call
-    mono_symbol = 1
+    mono_symbol = 0
     if mode == 'parameter_search':
         assert mono_symbol == True, "Parameter search can only be executed for one symbol at a time"
     
