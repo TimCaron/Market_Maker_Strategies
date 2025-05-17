@@ -99,7 +99,6 @@ x[:, 0] = 80000 #say btc like 80k
 x = brownian(x[:,0], N, dt, delta, out=x[:,1:])[0, :]
 # save data to have the same format as the real data:
 # Unix,Date,Symbol,Open,High,Low,Close,Volume BTC,Volume USDT,tradecount
-print(x.shape)
 
 # Create lists to store OHLC data
 opens = []
@@ -140,8 +139,8 @@ df = df[['Unix', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume
 df = df.iloc[::-1].reset_index(drop=True)
 # Save to CSV
 #makdir brownian/1d
-os.makedirs('brownian/1d', exist_ok=True)
-df.to_csv('brownian/1d/brownian_data.csv', index=False)
+os.makedirs('BROWNIANUSDT/1d', exist_ok=True)
+df.to_csv('BROWNIANUSDT/1d/data.csv', index=False)
 print(df.head())
 # Plot the data
 plt.figure(figsize=(15, 7))

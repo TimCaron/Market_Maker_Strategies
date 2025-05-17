@@ -90,9 +90,10 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict, risk_pa
         print(f"Total Unrealized PnL: {total_unrealized_pnl:.2f}")
         print(f"Total PnL: {(total_realized_pnl + total_unrealized_pnl):.2f}")
 
-    # Create price dictionary for visualization
+    # Create price dictionary for visualization using all symbols
     symbol_prices = {
-        'BTCUSDT': results['price_history']['BTCUSDT']
+        symbol: results['price_history'][symbol]
+        for symbol in symbols
     }
     
     viz_args = {
@@ -110,7 +111,6 @@ def process_results(results: Dict, symbols: List[str], strategies: Dict, risk_pa
         'params': strategies,
         'risk_params': risk_params
     }
-   
    
     # Generate visualization if display_img is True
     if display_img:

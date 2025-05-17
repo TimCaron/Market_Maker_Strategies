@@ -13,6 +13,7 @@ from simulation.executor import execute_simulation
 from simulation.results import process_results
 from trading_strategies.default_parameters import StoikovParameters, MexicoParameters, TokyoParameters, DefaultParameters
 from trading_strategies.Tokyo_strategy import TokyoStrategy, TokyoParameters
+from trading_strategies.vanilla_stoikov import VanillaStoikovStrategy
 from parameter_search import run_parameter_search
 from simulation.executor import get_starting_timestamp
 
@@ -31,7 +32,6 @@ def instantiate_strategies(trading_strategies: Dict[str, Dict[str, DefaultParame
      # Initialize strategy factory and create strategy instances
     factory = StrategyFactory()
     strategy_instances = {}
-    print('la', trading_strategies)
     # Create strategy instances for each symbol
     for symbol in symbols:
         symbol_config = trading_strategies[symbol]
@@ -40,7 +40,8 @@ def instantiate_strategies(trading_strategies: Dict[str, Dict[str, DefaultParame
         strategy_class = {
             'Mexico': MexicoStrategy,
             'Stoikov': StoikovStrategy,
-            'Tokyo': TokyoStrategy
+            'Tokyo': TokyoStrategy,
+            'VanillaStoikov': VanillaStoikovStrategy
         }.get(strategy_name)
         
         if not strategy_class:
@@ -79,7 +80,7 @@ def validate_args(period: str, trading_strategies: Dict[str, Dict[str, DefaultPa
     # Check if all trading strategies are implemented
     for symbol in symbols:
         strategy_name = list(trading_strategies[symbol].keys())[0]
-        assert strategy_name in ['Stoikov', 'Mexico', 'Tokyo'], f"Not implemented strategy: {strategy_name}"
+        assert strategy_name in ['Stoikov', 'Mexico', 'Tokyo', 'VanillaStoikov'], f"Not implemented strategy: {strategy_name}"
 
     # Check if risk strategy is implemented
     assert isinstance(risk_strategy, BaseRiskStrategy), f"Invalid risk strategy type: {type(risk_strategy)}"

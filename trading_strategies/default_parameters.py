@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 from constants import DEFAULT_PARAMS
+from .base_strategy import StrategyParameters
 
 @dataclass
 class DefaultParameters:
@@ -12,8 +13,7 @@ class DefaultParameters:
 
     # Minimum spread between orders: if set to : 2*DEFAULT_PARAMS['maker_fee'], 
     # the spread you win exactly compensate the fees ; lets take 4
-    minimal_spread: float = 4*DEFAULT_PARAMS['maker_fee']
-
+    minimal_spread: float = DEFAULT_PARAMS['minimal_spread']
     use_adaptive_sizes: bool = False #if False, all orders will have the same size given by max_inventory / max_orders
     # else it will be max_remaining_inventory / max_orders (per side)
     
@@ -26,10 +26,11 @@ class DefaultParameters:
     
 @dataclass
 class StoikovParameters(DefaultParameters):
-    # Stoikov-specific parameters
-    risk_aversion: float = 0.1
-    gamma_spread: float = 0.1
-
+    """Parameters for Stoikov market making strategy"""
+    risk_aversion: float = 0.1  # Risk aversion parameter
+    gamma_spread: float = 0.1  # Spread adjustment parameter
+    T: float = 10.0  # Total time horizon
+    dt: float = 0.001  # Time step size
 
 @dataclass
 class TokyoParameters(DefaultParameters):

@@ -441,8 +441,7 @@ class MarketMakerSimulation:
             self._update_end_of_timestamp(t, timestamps, closes)
 
         # End of simulation
-        btc_all_prices = prices['BTCUSDT']
-        self.btc_prices = list(btc_all_prices.values())
+    
         
         return {
             'wallet_balance': self.wallet_balance,
