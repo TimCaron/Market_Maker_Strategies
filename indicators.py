@@ -25,12 +25,7 @@ class IndicatorCalculator:
             
         # Calculate log returns
         log_returns = np.zeros(len(open_prices))  # Initialize with zeros
-        valid_prices = ~np.isnan(open_prices)
-        log_returns[1:] = np.where(
-            valid_prices[1:] & valid_prices[:-1],
-            np.log(open_prices[1:] / open_prices[:-1]),
-            0  # Use 0 for invalid price pairs
-        )
+        log_returns[1:] = np.log(open_prices[1:] / open_prices[:-1])
         
         # Calculate rolling standard deviation of log returns
         volatility = np.zeros(len(log_returns))  # Initialize with zeros
